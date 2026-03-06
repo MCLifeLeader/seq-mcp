@@ -1,0 +1,33 @@
+name: seq-mcp
+image: seq-mcp:local
+type: server
+meta:
+  category: observability
+  tags:
+    - seq
+    - datalust
+    - opentelemetry
+    - logs
+about:
+  title: Seq
+  description: Query and inspect Datalust Seq API data through MCP tools.
+config:
+  description: Configure the connection to your Seq instance.
+  secrets:
+    - name: seq-mcp.seq_api_key
+      env: SEQ_API_KEY
+      example: <SEQ_API_KEY>
+      description: Seq API key with least-privilege read access.
+      required: true
+  env:
+    - name: SEQ_URL
+      example: https://seq.example.com/api
+      value: "{{seq-mcp.seq_url}}"
+  parameters:
+    type: object
+    properties:
+      seq_url:
+        type: string
+        description: Seq base URL or API URL (for example https://seq.example.com/api).
+    required:
+      - seq_url

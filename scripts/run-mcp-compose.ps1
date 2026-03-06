@@ -10,6 +10,9 @@ param(
     [string]$ComposeFile = "compose.mcp.yaml",
 
     [Parameter()]
+    [string]$ContainerName = "",
+
+    [Parameter()]
     [switch]$Build
 )
 
@@ -82,4 +85,9 @@ if ($Build.IsPresent -or -not $imageExists) {
 }
 
 Write-Host "Starting MCP server over stdio using docker compose..."
-docker compose -f $ComposeFile run --rm -i seq-otel-mcp
+if ($ContainerName) {
+    docker compose -f $ComposeFile run --rm -i --name $ContainerName seq-otel-mcp
+}
+else {
+    docker compose -f $ComposeFile run --rm -i seq-otel-mcp
+}

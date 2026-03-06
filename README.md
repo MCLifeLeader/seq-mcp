@@ -135,6 +135,8 @@ Compose run behavior:
 - Value precedence is: explicit script args -> existing environment variables -> `.env`.
 - If `.env` is missing (or missing keys), you must provide `SEQ_URL` and `SEQ_API_KEY` via args or environment.
 - If `mcp/seq-otel:latest` does not exist locally, scripts auto-build before running.
+- By default, no container name is specified, so Docker auto-generates a random name.
+- You can override container name with `-ContainerName` (PowerShell) or `--container-name` (Bash).
 
 Or use helper scripts:
 
@@ -215,9 +217,8 @@ If either is missing, the container exits immediately with a clear startup error
 
 ## Copy/Paste MCP Config (Codex and VS Code)
 
-Use this when your MCP client accepts `command` + `args` + `env` JSON configuration.
-
-Windows path example:
+Assumes the image already exists (`mcp/seq-otel:latest`).
+Use this when your MCP client accepts `command` + `args` + `env` JSON configuration:
 
 ```json
 {
@@ -225,41 +226,13 @@ Windows path example:
     "seq-otel": {
       "command": "docker",
       "args": [
-        "compose",
-        "-f",
-        "C:\\\\Code\\\\git\\\\seq-mcp\\\\compose.mcp.yaml",
         "run",
         "--rm",
         "-i",
-        "seq-otel-mcp"
+        "mcp/seq-otel:latest"
       ],
       "env": {
         "SEQ_URL": "http://host.docker.internal:10150/api",
-        "SEQ_API_KEY": "<YOUR_SEQ_API_KEY>"
-      }
-    }
-  }
-}
-```
-
-Linux/macOS path example:
-
-```json
-{
-  "mcpServers": {
-    "seq-otel": {
-      "command": "docker",
-      "args": [
-        "compose",
-        "-f",
-        "/absolute/path/to/seq-mcp/compose.mcp.yaml",
-        "run",
-        "--rm",
-        "-i",
-        "seq-otel-mcp"
-      ],
-      "env": {
-        "SEQ_URL": "https://seq.example.com/api",
         "SEQ_API_KEY": "<YOUR_SEQ_API_KEY>"
       }
     }

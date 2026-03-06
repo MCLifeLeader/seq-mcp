@@ -5,6 +5,7 @@ COMPOSE_FILE="${COMPOSE_FILE:-compose.mcp.yaml}"
 SEQ_URL_ARG=""
 SEQ_API_KEY_ARG=""
 BUILD="false"
+CONTAINER_NAME=""
 
 usage() {
   cat <<EOF
@@ -14,6 +15,7 @@ Options:
   --seq-url <url>           Seq URL (optional if SEQ_URL already set)
   --seq-api-key <key>       Seq API key (optional if SEQ_API_KEY already set)
   --compose-file <path>     Compose file (default: compose.mcp.yaml)
+  --container-name <name>   Container name override (default: Docker-generated random name)
   --build                   Build image before run
   -h, --help                Show help
 EOF
@@ -31,6 +33,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --compose-file)
       COMPOSE_FILE="$2"
+      shift 2
+      ;;
+    --container-name)
+      CONTAINER_NAME="$2"
       shift 2
       ;;
     --build)
@@ -92,4 +98,8 @@ if [[ "$BUILD" == "true" ]]; then
 fi
 
 echo "Starting MCP server over stdio using docker compose..."
-exec docker compose -f "$COMPOSE_FILE" run --rm -i seq-otel-mcp
+if [[ -n "$CONTAINER_NAME" ]]; then
+  exec docker compose -f "$COMPOSE_FILE" run --rm -i --name "$CONTAINER_NAME" seq-otel-mcp
+else
+  exec docker compose -f "$COMPOSE_FILE" run --rm -i seq-otel-mcp
+fi

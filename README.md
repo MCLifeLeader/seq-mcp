@@ -113,7 +113,7 @@ Docker Hub documentation assets in this repo:
 Build image:
 
 ```bash
-docker build -t mcp/seq-otel:local .
+docker build -t mcp/seq-otel:latest .
 ```
 
 Run via Docker Compose (recommended for MCP stdio):
@@ -189,7 +189,7 @@ Run against local Seq:
 docker run --rm -i \
   -e SEQ_URL=http://host.docker.internal:10150 \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:local
+  mcp/seq-otel:latest
 ```
 
 Run against FQDN Seq:
@@ -198,17 +198,17 @@ Run against FQDN Seq:
 docker run --rm -i \
   -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:local
+  mcp/seq-otel:latest
 ```
 
 Run with Podman:
 
 ```bash
-podman build -t mcp/seq-otel:local .
+podman build -t mcp/seq-otel:latest .
 podman run --rm -i \
   -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:local
+  mcp/seq-otel:latest
 ```
 
 The container startup contract requires both variables to be present:

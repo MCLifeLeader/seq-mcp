@@ -4,7 +4,7 @@ param(
     [string]$ImageName = "mcp/seq-otel",
 
     [Parameter()]
-    [string]$Tag = "local",
+    [string]$Tag = "latest",
 
     [Parameter()]
     [string]$Registry = "",

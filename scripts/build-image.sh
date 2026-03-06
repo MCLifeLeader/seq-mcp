@@ -2,7 +2,7 @@
 set -euo pipefail
 
 IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otel}"
-TAG="${TAG:-local}"
+TAG="${TAG:-latest}"
 REGISTRY="${REGISTRY:-}"
 PUSH="${PUSH:-false}"
 SAVE_TAR="${SAVE_TAR:-}"
@@ -13,7 +13,7 @@ Usage: scripts/build-image.sh [options]
 
 Options:
   --image-name <name>   Image name (default: mcp/seq-otel)
-  --tag <tag>           Image tag (default: local)
+  --tag <tag>           Image tag (default: latest)
   --registry <registry> Optional registry prefix (example: ghcr.io/my-org)
   --push                Push after build
   --save-tar <path>     Save image archive to tar file

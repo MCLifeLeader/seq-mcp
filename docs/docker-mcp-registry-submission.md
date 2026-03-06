@@ -1,42 +1,48 @@
 # Docker MCP Registry Submission Checklist
 
-Use this checklist when preparing a PR to `https://github.com/docker/mcp-registry`.
+Use this checklist before opening a PR to `https://github.com/docker/mcp-registry`.
 
-## Registry References
+## Upstream References
 
-- Add server flow: https://github.com/docker/mcp-registry/blob/main/docs/add-server.md
-- Server metadata schema: https://github.com/docker/mcp-registry/blob/main/tools/json-schema/catalog.schema.json
-- Tools metadata schema: https://github.com/docker/mcp-registry/blob/main/tools/json-schema/tools.schema.json
+- Add-server flow: https://github.com/docker/mcp-registry/blob/main/docs/add-server.md
+- Server schema: https://github.com/docker/mcp-registry/blob/main/tools/json-schema/catalog.schema.json
+- Tools schema: https://github.com/docker/mcp-registry/blob/main/tools/json-schema/tools.schema.json
 
-## Files In This Repo Prepared For Submission
+## Files in This Repo Used for Submission
 
-- `catalog/server.yaml` (server metadata)
-- `catalog/tools.json` (tool metadata)
-- `assets/seq-otel-icon.svg` (icon used by `about.icon`)
-- `README.md` and `.dockerhub-readme.md` (public documentation)
-
-## Before Submitting PR To docker/mcp-registry
-
-1. Ensure image is publicly pullable:
-- `mcp/seq-otel:latest` (or versioned tag)
-
-2. Verify metadata values are accurate:
 - `catalog/server.yaml`
-- image, source URL/ref/path, icon URL, env/secrets placeholders
+- `catalog/tools.json`
+- `assets/seq-otel-icon.svg`
+- `README.md`
+- `.dockerhub-readme.md`
 
-3. Verify tools metadata:
-- `catalog/tools.json` includes representative public tools and valid `inputSchema`
+## Preflight (Required)
 
-4. Run local validation in this repo:
-- `npm run check`
-- `npm run build`
-- build image and smoke test startup contract
+1. Confirm image is publicly pullable.
+   - Example: `mcp/seq-otel:latest` or a versioned tag.
 
-5. Open PR to docker/mcp-registry:
-- Add a server entry according to the current `docs/add-server.md` instructions.
-- Include links to this repository and image.
+2. Verify `catalog/server.yaml`.
+   - `image` is correct and pullable.
+   - `source` metadata (URL/ref/path) is correct.
+   - `about.icon` points to a public stable URL.
+   - `config.env`/`config.secrets` placeholders are accurate.
 
-## Notes
+3. Verify `catalog/tools.json`.
+   - Tool list matches actual server behavior.
+   - `inputSchema` values are valid JSON schema.
+   - Representative public tools are present.
 
-- Registry requirements can change. Re-check the upstream docs and schemas before every submission.
-- Keep icon and README links public and branch-stable (`main`) for catalog rendering.
+4. Validate this repo build and contract.
+   - `npm run check`
+   - `npm run build`
+   - Build image and run a startup smoke test with required env vars.
+
+5. Re-check upstream docs/schemas on submission day.
+   - Registry requirements can change.
+
+## PR Content Checklist
+
+1. Add the server entry using current `docs/add-server.md` guidance.
+2. Link to this repository and the public image.
+3. Ensure icon and docs links resolve from public internet.
+4. Include any required metadata updates requested by maintainers.

@@ -26,6 +26,15 @@ Required configuration:
 ## Available MCP Tools
 
 - `seq_connection_test`: validates Seq connectivity and API reachability.
+- `seq_starter_help`: lists the compact starter alias tools.
+- `seq_starter_overview`: quick health, user, diagnostics, signals, and workspace summary.
+- `seq_starter_events_search`: common event search by filter/signal/time range.
+- `seq_starter_event_by_id`: fetch one event by id.
+- `seq_starter_data_query`: run a `q` query using `GET` or `POST`.
+- `seq_starter_signals_list` / `seq_starter_signal_by_id`: signal discovery helpers.
+- `seq_starter_dashboards_list`: list dashboards.
+- `seq_starter_alerts_list`: list alerts.
+- `seq_starter_events_stream`: bounded live-tail style stream call.
 - `seq_api_catalog`: returns the full official Seq route/verb/permission catalog.
 - `seq_api_live_links`: discovers live `name -> route` links from your Seq instance.
 - `seq_api_request`: generic verb/path invoker for any Seq API route.
@@ -183,6 +192,8 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
 ## API Mapping Artifact
 
 - Full generated API map: [`docs/api-map.md`](docs/api-map.md)
+- Maintenance/update playbook: [`docs/seq-mcp-maintenance.md`](docs/seq-mcp-maintenance.md)
+- Project skill for update workflows: [`.github/skills/seq-mcp-maintainer/SKILL.md`](.github/skills/seq-mcp-maintainer/SKILL.md)
 
 ## Status
 

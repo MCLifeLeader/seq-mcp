@@ -191,6 +191,37 @@ function resolvePathTemplate(
   });
 }
 
+type SeqMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+function findCatalogEntry(
+  method: SeqMethod,
+  path: string
+): SeqRouteCatalogEntry | undefined {
+  return SEQ_ROUTE_CATALOG.find(
+    (entry) => entry.method === method && entry.path === path
+  );
+}
+
+async function callCatalogRoute(
+  method: SeqMethod,
+  path: string,
+  options?: {
+    pathParams?: Record<string, string>;
+    query?: Record<string, string | undefined>;
+    body?: unknown;
+    contentType?: string;
+  }
+): Promise<unknown> {
+  const resolvedPath = resolvePathTemplate(path, options?.pathParams);
+  return seq.request({
+    method,
+    path: resolvedPath,
+    query: options?.query,
+    body: options?.body,
+    contentType: options?.contentType
+  });
+}
+
 async function discoverLiveLinks(): Promise<
   Array<{ source: string; name: string; route: string }>
 > {
@@ -226,6 +257,220 @@ async function discoverLiveLinks(): Promise<
 
   return links;
 }
+
+server.tool("seq_starter_overview", {}, async () => {
+  return withGracefulErrors("seq_starter_overview", async () => {
+    const calls = await Promise.allSettled([
+      callCatalogRoute("GET", "api", {}),
+      callCatalogRoute("GET", "api/users/current", {}),
+      callCatalogRoute("GET", "api/diagnostics/status", {}),
+      callCatalogRoute("GET", "api/signals", {}),
+      callCatalogRoute("GET", "api/workspaces", {})
+    ]);
+
+    const valueOrError = (result: PromiseSettledResult<unknown>): unknown => {
+      if (result.status === "fulfilled") {
+        return result.value;
+      }
+
+      return {
+        unavailable: true,
+        reason:
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason)
+      };
+    };
+
+    return {
+      api: valueOrError(calls[0]),
+      currentUser: valueOrError(calls[1]),
+      diagnosticsStatus: valueOrError(calls[2]),
+      signals: valueOrError(calls[3]),
+      workspaces: valueOrError(calls[4])
+    };
+  });
+});
+
+server.tool(
+  "seq_starter_events_search",
+  {
+    filter: z.string().optional(),
+    signal: z.string().optional(),
+    count: z.number().int().min(1).max(500).optional().default(50),
+    fromDateUtc: z.string().optional(),
+    toDateUtc: z.string().optional(),
+    render: z.boolean().optional().default(false)
+  },
+  async ({ filter, signal, count, fromDateUtc, toDateUtc, render }) => {
+    const route = findCatalogEntry("GET", "api/events");
+    return withGracefulErrors(
+      "seq_starter_events_search",
+      async () =>
+        callCatalogRoute("GET", "api/events", {
+          query: {
+            filter,
+            signal,
+            count: String(count),
+            fromDateUtc,
+            toDateUtc,
+            render: String(render)
+          }
+        }),
+      route?.permission
+    );
+  }
+);
+
+server.tool(
+  "seq_starter_event_by_id",
+  {
+    id: z.string().min(1),
+    render: z.boolean().optional().default(false)
+  },
+  async ({ id, render }) => {
+    const route = findCatalogEntry("GET", "api/events/{id}");
+    return withGracefulErrors(
+      "seq_starter_event_by_id",
+      async () =>
+        callCatalogRoute("GET", "api/events/{id}", {
+          pathParams: { id },
+          query: { render: String(render) }
+        }),
+      route?.permission
+    );
+  }
+);
+
+server.tool(
+  "seq_starter_data_query",
+  {
+    q: z.string().min(1),
+    signalId: z.string().optional(),
+    fromDateUtc: z.string().optional(),
+    toDateUtc: z.string().optional(),
+    count: z.number().int().min(1).max(500).optional().default(100),
+    usePost: z.boolean().optional().default(false)
+  },
+  async ({ q, signalId, fromDateUtc, toDateUtc, count, usePost }) => {
+    const method: SeqMethod = usePost ? "POST" : "GET";
+    const route = findCatalogEntry(method, "api/data");
+
+    return withGracefulErrors(
+      "seq_starter_data_query",
+      async () =>
+        callCatalogRoute(method, "api/data", {
+          query: usePost
+            ? undefined
+            : {
+                q,
+                signalId,
+                fromDateUtc,
+                toDateUtc,
+                count: String(count)
+              },
+          body: usePost
+            ? {
+                q,
+                signalId,
+                fromDateUtc,
+                toDateUtc,
+                count
+              }
+            : undefined
+        }),
+      route?.permission
+    );
+  }
+);
+
+server.tool("seq_starter_signals_list", {}, async () => {
+  const route = findCatalogEntry("GET", "api/signals");
+  return withGracefulErrors(
+    "seq_starter_signals_list",
+    async () => callCatalogRoute("GET", "api/signals"),
+    route?.permission
+  );
+});
+
+server.tool(
+  "seq_starter_signal_by_id",
+  {
+    id: z.string().min(1)
+  },
+  async ({ id }) => {
+    const route = findCatalogEntry("GET", "api/signals/{id}");
+    return withGracefulErrors(
+      "seq_starter_signal_by_id",
+      async () =>
+        callCatalogRoute("GET", "api/signals/{id}", {
+          pathParams: { id }
+        }),
+      route?.permission
+    );
+  }
+);
+
+server.tool("seq_starter_dashboards_list", {}, async () => {
+  const route = findCatalogEntry("GET", "api/dashboards");
+  return withGracefulErrors(
+    "seq_starter_dashboards_list",
+    async () => callCatalogRoute("GET", "api/dashboards"),
+    route?.permission
+  );
+});
+
+server.tool("seq_starter_alerts_list", {}, async () => {
+  const route = findCatalogEntry("GET", "api/alerts");
+  return withGracefulErrors(
+    "seq_starter_alerts_list",
+    async () => callCatalogRoute("GET", "api/alerts"),
+    route?.permission
+  );
+});
+
+server.tool(
+  "seq_starter_events_stream",
+  {
+    filter: z.string().optional(),
+    signal: z.string().optional(),
+    wait: z.number().int().min(0).max(30).optional().default(5),
+    render: z.boolean().optional().default(false)
+  },
+  async ({ filter, signal, wait, render }) => {
+    const route = findCatalogEntry("GET", "api/events/stream");
+    return withGracefulErrors(
+      "seq_starter_events_stream",
+      async () =>
+        callCatalogRoute("GET", "api/events/stream", {
+          query: {
+            filter,
+            signal,
+            wait: String(wait),
+            render: String(render)
+          }
+        }),
+      route?.permission
+    );
+  }
+);
+
+server.tool("seq_starter_help", {}, async () => {
+  return okResult({
+    starterTools: [
+      "seq_starter_overview",
+      "seq_starter_events_search",
+      "seq_starter_event_by_id",
+      "seq_starter_data_query",
+      "seq_starter_signals_list",
+      "seq_starter_signal_by_id",
+      "seq_starter_dashboards_list",
+      "seq_starter_alerts_list",
+      "seq_starter_events_stream"
+    ],
+    note: "Use seq_api_catalog and seq_api_request for full API surface access."
+  });
+});
 
 server.tool(
   "seq_connection_test",

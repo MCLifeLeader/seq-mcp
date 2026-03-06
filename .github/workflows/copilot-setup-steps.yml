@@ -1,0 +1,89 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/**"
+      - "AGENTS.md"
+      - "README.md"
+      - "docs/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+  pull_request:
+    paths:
+      - ".github/**"
+      - "AGENTS.md"
+      - "README.md"
+      - "docs/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+
+permissions:
+  contents: read
+
+jobs:
+  copilot-setup-steps:
+    name: Copilot Configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Validate TypeScript setup
+        run: npm run check
+
+      - name: Build project
+        run: npm run build
+
+      - name: Validate required Copilot files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f .github/copilot-instructions.md
+          echo "✓ .github/copilot-instructions.md exists"
+
+          test -d .github/instructions
+          echo "✓ .github/instructions exists"
+
+          instruction_count="$(find .github/instructions -name "*.md" | wc -l | tr -d ' ')"
+          if [ "${instruction_count}" -lt 1 ]; then
+            echo "❌ No instruction files found in .github/instructions"
+            exit 1
+          fi
+          echo "✓ Found ${instruction_count} instruction file(s)"
+
+      - name: Validate project skill files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f .github/skills/INDEX.md
+          echo "✓ .github/skills/INDEX.md exists"
+
+          test -f .github/skills/seq-mcp-maintainer/SKILL.md
+          echo "✓ seq-mcp-maintainer skill exists"
+
+      - name: Validate documentation references
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f docs/seq-mcp-maintenance.md
+          test -f docs/api-map.md
+          echo "✓ Maintenance and API map docs exist"

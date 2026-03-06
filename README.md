@@ -88,6 +88,8 @@ Current graceful handling includes:
 
 ## Local Run (Node)
 
+Node.js requirement: LTS (see `.nvmrc`).
+
 ```bash
 npm install
 npm run build

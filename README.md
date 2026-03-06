@@ -16,10 +16,10 @@ Required configuration:
 
 `SEQ_URL` accepts either:
 
-- Host URL (service will append `/api`):
+- Host URL (recommended; service will append `/api`):
   - `http://localhost:10150`
   - `https://seq.example.com`
-- Full API base URL:
+- Full API base URL (also supported):
   - `http://localhost:10150/api`
   - `https://seq.example.com/api`
 
@@ -98,7 +98,7 @@ npm run build
 Windows PowerShell:
 
 ```powershell
-$env:SEQ_URL = "http://localhost:10150/api"
+$env:SEQ_URL = "http://localhost:10150"
 $env:SEQ_API_KEY = "your-key"
 node dist/index.js
 ```
@@ -121,13 +121,13 @@ Run via Docker Compose (recommended for MCP stdio):
 PowerShell:
 
 ```powershell
-./scripts/run-mcp-compose.ps1 -SeqUrl "http://localhost:10150/api" -SeqApiKey "<YOUR_SEQ_API_KEY>" -ImageTag latest -Build
+./scripts/run-mcp-compose.ps1 -SeqUrl "http://localhost:10150" -SeqApiKey "<YOUR_SEQ_API_KEY>" -ImageTag latest -Build
 ```
 
 Bash:
 
 ```bash
-./scripts/run-mcp-compose.sh --seq-url "http://localhost:10150/api" --seq-api-key "<YOUR_SEQ_API_KEY>" --image-tag latest --build
+./scripts/run-mcp-compose.sh --seq-url "http://localhost:10150" --seq-api-key "<YOUR_SEQ_API_KEY>" --image-tag latest --build
 ```
 
 Compose run behavior:
@@ -187,7 +187,7 @@ Run against local Seq:
 
 ```bash
 docker run --rm -i \
-  -e SEQ_URL=http://host.docker.internal:10150/api \
+  -e SEQ_URL=http://host.docker.internal:10150 \
   -e SEQ_API_KEY=your-key \
   mcp/seq-otel:local
 ```
@@ -196,7 +196,7 @@ Run against FQDN Seq:
 
 ```bash
 docker run --rm -i \
-  -e SEQ_URL=https://seq.example.com/api \
+  -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
   mcp/seq-otel:local
 ```
@@ -206,7 +206,7 @@ Run with Podman:
 ```bash
 podman build -t mcp/seq-otel:local .
 podman run --rm -i \
-  -e SEQ_URL=https://seq.example.com/api \
+  -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
   mcp/seq-otel:local
 ```
@@ -233,7 +233,7 @@ Assumes the image already exists (`mcp/seq-otel:latest`).
         "--rm",
         "-i",
         "-e",
-        "SEQ_URL=http://host.docker.internal:10150/api",
+        "SEQ_URL=http://host.docker.internal:10150",
         "-e",
         "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
         "mcp/seq-otel:latest"
@@ -278,7 +278,7 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
         "--rm",
         "-i",
         "-e",
-        "SEQ_URL=https://seq.example.com/api",
+        "SEQ_URL=https://seq.example.com",
         "-e",
         "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
         "mcp/seq-otel:latest"

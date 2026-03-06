@@ -80,7 +80,7 @@ jobs:
         run: |
           set +e
           timeout 5s docker run --rm -i \
-            -e SEQ_URL=http://example.com/api \
+            -e SEQ_URL=http://example.com \
             -e SEQ_API_KEY=ci-test-key \
             mcp/seq-otel:latest >/dev/null 2>&1
           code=$?

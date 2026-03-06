@@ -46,12 +46,14 @@ export class SeqNetworkError extends Error {
 export class SeqClient {
   private readonly apiBase: URL;
   private readonly apiOrigin: string;
+  private readonly apiBasePath: string;
   private readonly apiKey: string;
   private readonly timeoutMs: number;
 
   public constructor(config: ServerConfig) {
     this.apiBase = new URL(config.seqUrl);
     this.apiOrigin = this.apiBase.origin;
+    this.apiBasePath = this.apiBase.pathname.replace(/\/+$/, "");
     this.apiKey = config.seqApiKey;
     this.timeoutMs = config.seqTimeoutMs;
   }
@@ -61,9 +63,7 @@ export class SeqClient {
   }
 
   public async request(options: SeqRequestOptions): Promise<unknown> {
-    const endpoint = options.path.startsWith("/")
-      ? new URL(options.path, this.apiOrigin)
-      : new URL(options.path.replace(/^\/+/, ""), `${this.apiBase.toString().replace(/\/+$/, "")}/`);
+    const endpoint = this.resolveEndpoint(options.path);
 
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) {
@@ -125,5 +125,21 @@ export class SeqClient {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  private resolveEndpoint(path: string): URL {
+    if (path.startsWith("/")) {
+      return new URL(path, this.apiOrigin);
+    }
+
+    let normalizedPath = path.replace(/^\/+/, "");
+    if (this.apiBasePath.endsWith("/api")) {
+      normalizedPath = normalizedPath.replace(/^api(?:\/|$)/i, "");
+    }
+
+    return new URL(
+      normalizedPath,
+      `${this.apiBase.toString().replace(/\/+$/, "")}/`
+    );
   }
 }

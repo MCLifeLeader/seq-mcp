@@ -13,7 +13,7 @@ const config = loadConfig();
 const seq = new SeqClient(config);
 
 const server = new McpServer({
-  name: "seq-mcp",
+  name: "mcp-seq-otel",
   version: "0.2.0"
 });
 
@@ -640,6 +640,6 @@ async function start(): Promise<void> {
 
 start().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`seq-mcp startup error: ${message}\n`);
+  process.stderr.write(`mcp-seq-otel startup error: ${message}\n`);
   process.exit(1);
 });

@@ -25,7 +25,7 @@ When Seq adds/removes/changes endpoints or permissions, update all of the follow
 
 1. Confirm local configuration:
 - Ensure `.env` has `SEQ_URL` and `SEQ_API_KEY`.
-- Prefer `SEQ_URL` ending at host root or `/api` (both are supported).
+- Prefer `SEQ_URL` at host root (for example `http://localhost:10150`); `/api` is also supported.
 
 2. Re-scan live API links from your Seq instance:
 - Query `GET /api` and each `*/resources` link.

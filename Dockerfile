@@ -13,7 +13,7 @@ RUN npm run build
 FROM node:lts-alpine AS runtime
 WORKDIR /app
 
-ARG IMAGE_VERSION=local
+ARG IMAGE_VERSION=latest
 ARG VCS_REF=unknown
 ARG BUILD_DATE=unknown
 

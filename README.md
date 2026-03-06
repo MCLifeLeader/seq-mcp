@@ -1,6 +1,6 @@
-# seq-mcp
+# mcp-seq-otel
 
-Standalone MCP server that gives AI agents controlled read access to a user-owned Datalust Seq instance.
+Standalone MCP server that gives AI agents controlled API access to a user-owned Datalust Seq instance.
 
 ## What This Service Assumes
 
@@ -16,10 +16,10 @@ Required configuration:
 
 `SEQ_URL` accepts either:
 
-- Host URL (service will append `/api`):
+- Host URL (recommended; service will append `/api`):
   - `http://localhost:10150`
   - `https://seq.example.com`
-- Full API base URL:
+- Full API base URL (also supported):
   - `http://localhost:10150/api`
   - `https://seq.example.com/api`
 
@@ -40,31 +40,38 @@ Required configuration:
 - `seq_api_request`: generic verb/path invoker for any Seq API route.
 - `seq_<verb>_<route>`: auto-generated tool per official route+verb (from docs).
 
+Scope note:
+
+- `seq_starter_*` tools are focused on common read workflows.
+- `seq_api_request` and `seq_<verb>_<route>` expose the broader HTTP API surface from the Seq endpoint catalog, including non-`GET` routes.
+
 ## Seq API Key Permissions
 
-Based on current Seq documentation, this MCP server should run with least privilege.
+Use least privilege based on the exact tools/workflows your MCP client will call.
 
-Recommended API key permission selection:
+Authoritative Datalust references:
 
-- `Read`: enable
-- `Ingest`: disable
-- `Write`: disable
-- `Project`: disable
-- `Organization`: disable
-- `System`: disable
+- API keys and permission model: https://docs.datalust.co/docs/api-keys
+- HTTP API usage guide: https://docs.datalust.co/docs/using-the-http-api
+- Server endpoint + permission table: https://docs.datalust.co/docs/server-http-api
+
+Recommended permission profiles:
+
+- Read-focused starter usage (`seq_starter_*`, `seq_connection_test`, read-only queries): enable `Read`; disable `Ingest`, `Write`, `Project`, `Organization`, `System`.
+- Full route-surface usage (`seq_api_request` and `seq_<verb>_<route>`): required permissions depend on the specific route+verb; check `seq_api_catalog` or the official endpoint table before granting.
 
 Permission guidance for this project:
 
 | Permission | Needed now | Why |
 |---|---|---|
-| `Read` | Yes | Required for querying and retrieving events/data. |
-| `Ingest` | No | This MCP server does not write new events to Seq. |
-| `Write` | No | This MCP server does not modify Seq resources. |
-| `Project` | No | No project administration features are implemented. |
-| `Organization` | No | No org-level administration features are implemented. |
-| `System` | No | No system administration endpoints are used. |
+| `Read` | Yes | Required by starter query/retrieval workflows. |
+| `Ingest` | Usually No | Needed only when calling ingestion routes such as `ingest/*` or `api/events/raw` when API-key-for-writing is required. |
+| `Write` | Maybe | Needed for write routes (for example signals, dashboards, alerts, permalinks, SQL queries). |
+| `Project` | Maybe | Needed for project-scoped administration and some settings/index routes. |
+| `Organization` | Maybe | Needed for organization/user-management routes. |
+| `System` | Maybe | Needed for system administration routes (for example apps, feeds, backups, updates). |
 
-Endpoint mapping in current implementation:
+Starter endpoint mapping in current implementation:
 
 - `GET /health`: public endpoint.
 - `GET /api/events/resources`: public endpoint.
@@ -83,7 +90,7 @@ Tool failures are returned as structured MCP error responses (`isError: true`) i
 Current graceful handling includes:
 
 - `401 Unauthorized`: returns guidance to verify `SEQ_API_KEY` and `SEQ_URL`.
-- `403 Forbidden`: returns a permission-denied response with required permission hints (currently `Read`).
+- `403 Forbidden`: returns a permission-denied response with route-derived permission hints when available.
 - Network/timeout failures: returns connectivity diagnostics for AI clients.
 
 ## Local Run (Node)
@@ -98,7 +105,7 @@ npm run build
 Windows PowerShell:
 
 ```powershell
-$env:SEQ_URL = "http://localhost:10150/api"
+$env:SEQ_URL = "http://localhost:10150"
 $env:SEQ_API_KEY = "your-key"
 node dist/index.js
 ```
@@ -113,8 +120,33 @@ Docker Hub documentation assets in this repo:
 Build image:
 
 ```bash
-docker build -t mcp/seq-otel:local .
+docker build -t mcp/seq-otel:latest .
 ```
+
+Run via Docker Compose (recommended for MCP stdio):
+
+PowerShell:
+
+```powershell
+./scripts/run-mcp-compose.ps1 -SeqUrl "http://localhost:10150" -SeqApiKey "<YOUR_SEQ_API_KEY>" -ImageTag latest -Build
+```
+
+Bash:
+
+```bash
+./scripts/run-mcp-compose.sh --seq-url "http://localhost:10150" --seq-api-key "<YOUR_SEQ_API_KEY>" --image-tag latest --build
+```
+
+Compose run behavior:
+
+- Value precedence is: explicit script args -> existing environment variables -> `.env`.
+- If the target `.env` is missing, scripts create a generic template `.env` automatically.
+- When that generated generic template is in use, ensure `SEQ_URL` and `SEQ_API_KEY` are resolved via script args, existing environment variables, or a populated `.env` file.
+- `MCP_IMAGE_TAG` precedence is: explicit `-ImageTag`/`--image-tag` -> existing environment -> `.env` -> `latest`.
+- Scripts check image availability through compose service metadata and auto-build if the selected tag is not available.
+- By default, no container name is specified, so Docker auto-generates a random name.
+- You can override container name with `-ContainerName` (PowerShell) or `--container-name` (Bash).
+- For security, prefer setting `SEQ_API_KEY` via environment variables or `.env` instead of CLI args.
 
 Or use helper scripts:
 
@@ -162,28 +194,28 @@ Run against local Seq:
 
 ```bash
 docker run --rm -i \
-  -e SEQ_URL=http://host.docker.internal:10150/api \
+  -e SEQ_URL=http://host.docker.internal:10150 \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:local
+  mcp/seq-otel:latest
 ```
 
 Run against FQDN Seq:
 
 ```bash
 docker run --rm -i \
-  -e SEQ_URL=https://seq.example.com/api \
+  -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:local
+  mcp/seq-otel:latest
 ```
 
 Run with Podman:
 
 ```bash
-podman build -t mcp/seq-otel:local .
+podman build -t mcp/seq-otel:latest .
 podman run --rm -i \
-  -e SEQ_URL=https://seq.example.com/api \
+  -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:local
+  mcp/seq-otel:latest
 ```
 
 The container startup contract requires both variables to be present:
@@ -192,6 +224,31 @@ The container startup contract requires both variables to be present:
 - `SEQ_API_KEY`
 
 If either is missing, the container exits immediately with a clear startup error.
+
+## Copy/Paste MCP Config (Codex and VS Code)
+
+Assumes the image already exists (`mcp/seq-otel:latest`).
+
+```json
+{
+  "mcpServers": {
+    "seq-otel": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "SEQ_URL=http://host.docker.internal:10150",
+        "-e",
+        "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
+        "mcp/seq-otel:latest"
+      ]
+    }
+  }
+}
+```
 
 ## Docker MCP Catalog Compatibility
 
@@ -220,17 +277,18 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
 ```json
 {
   "mcpServers": {
-    "seq": {
+    "seq-otel": {
+      "type": "stdio",
       "command": "docker",
       "args": [
         "run",
         "--rm",
         "-i",
         "-e",
-        "SEQ_URL=https://seq.example.com/api",
+        "SEQ_URL=https://seq.example.com",
         "-e",
-        "SEQ_API_KEY=${SEQ_API_KEY}",
-        "mcp/seq-otel:local"
+        "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
+        "mcp/seq-otel:latest"
       ]
     }
   }

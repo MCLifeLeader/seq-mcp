@@ -1,0 +1,13 @@
+services:
+  seq-otel-mcp:
+    image: mcp/seq-otel:${MCP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        IMAGE_VERSION: ${MCP_IMAGE_TAG:-latest}
+    stdin_open: true
+    tty: false
+    environment:
+      SEQ_URL: ${SEQ_URL:?SEQ_URL is required}
+      SEQ_API_KEY: ${SEQ_API_KEY:?SEQ_API_KEY is required}

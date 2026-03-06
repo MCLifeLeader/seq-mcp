@@ -26,14 +26,14 @@ config:
       properties:
         seq_url:
           type: string
-          description: Seq base URL or API URL (for example https://seq.example.com/api).
+          description: Seq base URL (recommended) or API URL (for example https://seq.example.com).
       required:
         - seq_url
   description: Configure connection settings for the target Seq instance.
   env:
     - name: SEQ_URL
-      description: URL for the target Seq server root or /api endpoint.
-      example: https://seq.example.com/api
+      description: URL for the target Seq server root (recommended) or /api endpoint.
+      example: https://seq.example.com
       value: "{{seq-otel.seq_url}}"
   secrets:
     - name: seq-otel.seq_api_key

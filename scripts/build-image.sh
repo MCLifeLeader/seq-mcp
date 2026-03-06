@@ -2,10 +2,22 @@
 set -euo pipefail
 
 IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otel}"
-TAG="${TAG:-local}"
+TAG="${TAG:-latest}"
 REGISTRY="${REGISTRY:-}"
 PUSH="${PUSH:-false}"
 SAVE_TAR="${SAVE_TAR:-}"
+
+stop_running_containers_for_image() {
+  local image_ref="$1"
+  local container_ids
+  container_ids="$(docker ps -q --filter "ancestor=${image_ref}" || true)"
+  if [[ -z "$container_ids" ]]; then
+    return
+  fi
+
+  echo "Stopping containers using image ${image_ref}: ${container_ids}" >&2
+  docker rm -f $container_ids >/dev/null
+}
 
 usage() {
   cat <<EOF
@@ -13,7 +25,7 @@ Usage: scripts/build-image.sh [options]
 
 Options:
   --image-name <name>   Image name (default: mcp/seq-otel)
-  --tag <tag>           Image tag (default: local)
+  --tag <tag>           Image tag (default: latest)
   --registry <registry> Optional registry prefix (example: ghcr.io/my-org)
   --push                Push after build
   --save-tar <path>     Save image archive to tar file
@@ -61,6 +73,8 @@ else
   FULL_IMAGE="${IMAGE_NAME}:${TAG}"
 fi
 
+LOCAL_IMAGE="${IMAGE_NAME}:${TAG}"
+
 if command -v git >/dev/null 2>&1; then
   VCS_REF="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 else
@@ -68,6 +82,11 @@ else
 fi
 
 BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+stop_running_containers_for_image "$LOCAL_IMAGE"
+if [[ "$FULL_IMAGE" != "$LOCAL_IMAGE" ]]; then
+  stop_running_containers_for_image "$FULL_IMAGE"
+fi
 
 echo "Building image: ${FULL_IMAGE}"
 docker build \

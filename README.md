@@ -1,6 +1,6 @@
 # mcp-seq-otel
 
-Standalone MCP server that gives AI agents controlled read access to a user-owned Datalust Seq instance.
+Standalone MCP server that gives AI agents controlled API access to a user-owned Datalust Seq instance.
 
 ## What This Service Assumes
 
@@ -40,31 +40,38 @@ Required configuration:
 - `seq_api_request`: generic verb/path invoker for any Seq API route.
 - `seq_<verb>_<route>`: auto-generated tool per official route+verb (from docs).
 
+Scope note:
+
+- `seq_starter_*` tools are focused on common read workflows.
+- `seq_api_request` and `seq_<verb>_<route>` expose the broader HTTP API surface from the Seq endpoint catalog, including non-`GET` routes.
+
 ## Seq API Key Permissions
 
-Based on current Seq documentation, this MCP server should run with least privilege.
+Use least privilege based on the exact tools/workflows your MCP client will call.
 
-Recommended API key permission selection:
+Authoritative Datalust references:
 
-- `Read`: enable
-- `Ingest`: disable
-- `Write`: disable
-- `Project`: disable
-- `Organization`: disable
-- `System`: disable
+- API keys and permission model: https://docs.datalust.co/docs/api-keys
+- HTTP API usage guide: https://docs.datalust.co/docs/using-the-http-api
+- Server endpoint + permission table: https://docs.datalust.co/docs/server-http-api
+
+Recommended permission profiles:
+
+- Read-focused starter usage (`seq_starter_*`, `seq_connection_test`, read-only queries): enable `Read`; disable `Ingest`, `Write`, `Project`, `Organization`, `System`.
+- Full route-surface usage (`seq_api_request` and `seq_<verb>_<route>`): required permissions depend on the specific route+verb; check `seq_api_catalog` or the official endpoint table before granting.
 
 Permission guidance for this project:
 
 | Permission | Needed now | Why |
 |---|---|---|
-| `Read` | Yes | Required for querying and retrieving events/data. |
-| `Ingest` | No | This MCP server does not write new events to Seq. |
-| `Write` | No | This MCP server does not modify Seq resources. |
-| `Project` | No | No project administration features are implemented. |
-| `Organization` | No | No org-level administration features are implemented. |
-| `System` | No | No system administration endpoints are used. |
+| `Read` | Yes | Required by starter query/retrieval workflows. |
+| `Ingest` | Usually No | Needed only when calling ingestion routes such as `ingest/*` or `api/events/raw` when API-key-for-writing is required. |
+| `Write` | Maybe | Needed for write routes (for example signals, dashboards, alerts, permalinks, SQL queries). |
+| `Project` | Maybe | Needed for project-scoped administration and some settings/index routes. |
+| `Organization` | Maybe | Needed for organization/user-management routes. |
+| `System` | Maybe | Needed for system administration routes (for example apps, feeds, backups, updates). |
 
-Endpoint mapping in current implementation:
+Starter endpoint mapping in current implementation:
 
 - `GET /health`: public endpoint.
 - `GET /api/events/resources`: public endpoint.
@@ -83,7 +90,7 @@ Tool failures are returned as structured MCP error responses (`isError: true`) i
 Current graceful handling includes:
 
 - `401 Unauthorized`: returns guidance to verify `SEQ_API_KEY` and `SEQ_URL`.
-- `403 Forbidden`: returns a permission-denied response with required permission hints (currently `Read`).
+- `403 Forbidden`: returns a permission-denied response with route-derived permission hints when available.
 - Network/timeout failures: returns connectivity diagnostics for AI clients.
 
 ## Local Run (Node)

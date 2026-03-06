@@ -26,12 +26,31 @@ function Require-Command([string]$Name) {
 
 Require-Command "docker"
 
+function Stop-RunningContainersForImage([string]$ImageRef) {
+    $containerIds = docker ps -q --filter "ancestor=$ImageRef"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to query running containers for image '$ImageRef'."
+    }
+
+    if (-not $containerIds) {
+        return
+    }
+
+    Write-Host "Stopping containers using image ${ImageRef}: $($containerIds -join ' ')"
+    docker rm -f $containerIds | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to stop containers using image '$ImageRef'."
+    }
+}
+
 $fullImage = if ([string]::IsNullOrWhiteSpace($Registry)) {
     "{0}:{1}" -f $ImageName, $Tag
 }
 else {
     "{0}/{1}:{2}" -f $Registry.TrimEnd("/"), $ImageName, $Tag
 }
+
+$localImage = "{0}:{1}" -f $ImageName, $Tag
 
 $gitRef = "unknown"
 if (Get-Command git -ErrorAction SilentlyContinue) {
@@ -43,6 +62,11 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 }
 
 $buildDate = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+
+Stop-RunningContainersForImage $localImage
+if ($fullImage -ne $localImage) {
+    Stop-RunningContainersForImage $fullImage
+}
 
 Write-Host "Building image: $fullImage"
 docker build `

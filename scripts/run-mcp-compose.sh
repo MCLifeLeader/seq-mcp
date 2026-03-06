@@ -49,6 +49,33 @@ MCP_IMAGE_TAG=latest
 EOF
 }
 
+remove_existing_compose_service_containers() {
+  local compose_file="$1"
+  local service_name="$2"
+  local container_ids
+
+  container_ids="$(docker compose -f "$compose_file" ps -q "$service_name" 2>/dev/null || true)"
+  if [[ -z "$container_ids" ]]; then
+    return
+  fi
+
+  echo "Stopping existing containers for compose service '$service_name': ${container_ids}" >&2
+  docker rm -f $container_ids >/dev/null
+}
+
+remove_container_by_name_if_present() {
+  local container_name="$1"
+  local container_id
+
+  container_id="$(docker ps -aq --filter "name=^/${container_name}$" 2>/dev/null || true)"
+  if [[ -z "$container_id" ]]; then
+    return
+  fi
+
+  echo "Stopping existing container '$container_name' (${container_id})" >&2
+  docker rm -f "$container_id" >/dev/null
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --seq-url)
@@ -170,12 +197,15 @@ if [[ "$BUILD" != "true" ]]; then
   fi
 fi
 
+remove_existing_compose_service_containers "$COMPOSE_FILE" "seq-otel-mcp"
+
 if [[ "$BUILD" == "true" ]]; then
   docker compose -f "$COMPOSE_FILE" build seq-otel-mcp
 fi
 
 echo "Starting MCP server over stdio using docker compose..."
 if [[ -n "$CONTAINER_NAME" ]]; then
+  remove_container_by_name_if_present "$CONTAINER_NAME"
   exec docker compose -f "$COMPOSE_FILE" run --rm -i --name "$CONTAINER_NAME" seq-otel-mcp
 else
   exec docker compose -f "$COMPOSE_FILE" run --rm -i seq-otel-mcp

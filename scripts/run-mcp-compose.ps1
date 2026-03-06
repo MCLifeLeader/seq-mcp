@@ -77,6 +77,40 @@ MCP_IMAGE_TAG=latest
 "@ | Set-Content -Path $Path -Encoding utf8
 }
 
+function Remove-ExistingComposeServiceContainers([string]$ComposeFilePath, [string]$ServiceName) {
+    $containerIds = docker compose -f $ComposeFilePath ps -q $ServiceName 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return
+    }
+
+    if (-not $containerIds) {
+        return
+    }
+
+    Write-Host "Stopping existing containers for compose service '$ServiceName': $($containerIds -join ' ')"
+    docker rm -f $containerIds | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to stop existing containers for compose service '$ServiceName'."
+    }
+}
+
+function Remove-ContainerByNameIfPresent([string]$Name) {
+    if (-not $Name) {
+        return
+    }
+
+    $containerId = docker ps -aq --filter "name=^/$Name$" 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($containerId)) {
+        return
+    }
+
+    Write-Host "Stopping existing container '$Name' ($containerId)"
+    docker rm -f $containerId | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to stop existing container '$Name'."
+    }
+}
+
 if ($SeqUrl) {
     $env:SEQ_URL = $SeqUrl
 }
@@ -126,6 +160,8 @@ if ($LASTEXITCODE -eq 0) {
 }
 $imageExists = -not [string]::IsNullOrWhiteSpace($imageId)
 
+Remove-ExistingComposeServiceContainers $ComposeFile "seq-otel-mcp"
+
 if ($Build.IsPresent -or -not $imageExists) {
     docker compose -f $ComposeFile build seq-otel-mcp
     if ($LASTEXITCODE -ne 0) {
@@ -135,6 +171,7 @@ if ($Build.IsPresent -or -not $imageExists) {
 
 Write-Host "Starting MCP server over stdio using docker compose..."
 if ($ContainerName) {
+    Remove-ContainerByNameIfPresent $ContainerName
     docker compose -f $ComposeFile run --rm -i --name $ContainerName seq-otel-mcp
 }
 else {

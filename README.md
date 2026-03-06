@@ -121,20 +121,22 @@ Run via Docker Compose (recommended for MCP stdio):
 PowerShell:
 
 ```powershell
-./scripts/run-mcp-compose.ps1 -SeqUrl "http://localhost:10150/api" -SeqApiKey "<YOUR_SEQ_API_KEY>" -Build
+./scripts/run-mcp-compose.ps1 -SeqUrl "http://localhost:10150/api" -SeqApiKey "<YOUR_SEQ_API_KEY>" -ImageTag latest -Build
 ```
 
 Bash:
 
 ```bash
-./scripts/run-mcp-compose.sh --seq-url "http://localhost:10150/api" --seq-api-key "<YOUR_SEQ_API_KEY>" --build
+./scripts/run-mcp-compose.sh --seq-url "http://localhost:10150/api" --seq-api-key "<YOUR_SEQ_API_KEY>" --image-tag latest --build
 ```
 
 Compose run behavior:
 
 - Value precedence is: explicit script args -> existing environment variables -> `.env`.
-- If `.env` is missing (or missing keys), you must provide `SEQ_URL` and `SEQ_API_KEY` via args or environment.
-- If `mcp/seq-otel:latest` does not exist locally, scripts auto-build before running.
+- If the target `.env` is missing, scripts create a generic template `.env` automatically.
+- When that generated generic template is in use, you must pass `SEQ_URL` and `SEQ_API_KEY` via script arguments.
+- `MCP_IMAGE_TAG` precedence is: explicit `-ImageTag`/`--image-tag` -> existing environment -> `.env` -> `latest`.
+- Scripts check image availability through compose service metadata and auto-build if the selected tag is not available.
 - By default, no container name is specified, so Docker auto-generates a random name.
 - You can override container name with `-ContainerName` (PowerShell) or `--container-name` (Bash).
 

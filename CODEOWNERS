@@ -1,32 +1,19 @@
-# Master Repo Owners
+# Repository-wide default owner
+* @MCLifeLeader
 
-* @AGameEmpowerment/agame-org-admins
+# Core project areas
+/.github/ @MCLifeLeader
+/.devcontainer/ @MCLifeLeader
+/src/ @MCLifeLeader
+/docs/ @MCLifeLeader
+/scripts/ @MCLifeLeader
+/docker/ @MCLifeLeader
+/catalog/ @MCLifeLeader
 
-# Environment and Configuration
-
-/.editorconfig                  @AGameEmpowerment/agame-org-admins
-/.vsconfig                      @AGameEmpowerment/agame-org-admins
-/.gitattributes                 @AGameEmpowerment/agame-org-admins
-/.gitignore                     @AGameEmpowerment/agame-org-admins
-/.devcontainer/                 @AGameEmpowerment/agame-org-admins
-/.github/                       @AGameEmpowerment/agame-org-admins
-/.sonarlint/                    @AGameEmpowerment/agame-org-admins
-/.vscode/                       @AGameEmpowerment/agame-org-admins
-/containers/                    @AGameEmpowerment/agame-org-admins
-
-# Documentation
-
-/CONTRIBUTING.md                @AGameEmpowerment/agame-org-admins
-/README.md                      @AGameEmpowerment/agame-org-admins
-
-# Source Code
-
-/src/                           @AGameEmpowerment/agame-org-admins
-
-# Pipeline
-
-/devops/                        @AGameEmpowerment/agame-org-admins
-
-# Access Control
-
-/CODEOWNERS                     @AGameEmpowerment/agame-org-admins
+# Root governance and project metadata
+/CODEOWNERS @MCLifeLeader
+/README.md @MCLifeLeader
+/CONTRIBUTING.md @MCLifeLeader
+/Dockerfile @MCLifeLeader
+/package.json @MCLifeLeader
+/package-lock.json @MCLifeLeader

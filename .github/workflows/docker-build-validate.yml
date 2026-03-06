@@ -1,0 +1,95 @@
+name: Docker Build And Validate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "docker/**"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - ".github/workflows/docker-build-validate.yml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "docker/**"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - ".github/workflows/docker-build-validate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  docker-build-validate:
+    name: Build and Validate Container
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg IMAGE_VERSION=ci \
+            --build-arg VCS_REF="${GITHUB_SHA}" \
+            --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -t mcp/seq-otel:ci .
+
+      - name: Validate startup contract without required env
+        shell: bash
+        run: |
+          set +e
+          docker run --rm mcp/seq-otel:ci >/dev/null 2>&1
+          code=$?
+          set -e
+
+          if [ "$code" -ne 64 ]; then
+            echo "Expected container to exit with 64 when required env vars are missing; got ${code}"
+            exit 1
+          fi
+
+          echo "✓ Missing env contract validated (exit code 64)"
+
+      - name: Validate container starts with required env
+        shell: bash
+        run: |
+          set +e
+          timeout 5s docker run --rm -i \
+            -e SEQ_URL=http://example.com/api \
+            -e SEQ_API_KEY=ci-test-key \
+            mcp/seq-otel:ci >/dev/null 2>&1
+          code=$?
+          set -e
+
+          # 124 = timeout reached (container started and kept running), 0 = clean exit.
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
+            echo "Container failed to start with required env vars (exit code ${code})"
+            exit 1
+          fi
+
+          echo "✓ Startup with required env validated"

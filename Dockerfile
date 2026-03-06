@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine AS build
+FROM node:lts-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -10,7 +10,7 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:20-alpine AS runtime
+FROM node:lts-alpine AS runtime
 WORKDIR /app
 
 ARG IMAGE_VERSION=local
@@ -18,10 +18,10 @@ ARG VCS_REF=unknown
 ARG BUILD_DATE=unknown
 
 LABEL org.opencontainers.image.title="mcp/seq-otel" \
-      org.opencontainers.image.description="Standalone MCP server for Datalust Seq OpenTelemetry access" \
+      org.opencontainers.image.description="Unofficial Standalone MCP server for Datalust Seq OpenTelemetry access" \
       org.opencontainers.image.url="https://hub.docker.com/r/mcp/seq-otel" \
-      org.opencontainers.image.documentation="https://github.com/your-org/seq-mcp/blob/main/README.md" \
-      org.opencontainers.image.source="https://github.com/your-org/seq-mcp" \
+      org.opencontainers.image.documentation="https://github.com/MCLifeLeader/seq-mcp/blob/main/README.md" \
+      org.opencontainers.image.source="https://github.com/MCLifeLeader/seq-mcp" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="$IMAGE_VERSION" \
       org.opencontainers.image.revision="$VCS_REF" \

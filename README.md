@@ -88,6 +88,8 @@ Current graceful handling includes:
 
 ## Local Run (Node)
 
+Node.js requirement: LTS (see `.nvmrc`).
+
 ```bash
 npm install
 npm run build
@@ -133,13 +135,13 @@ Build and push to registry (pullable by other Docker hosts):
 PowerShell:
 
 ```powershell
-./scripts/build-image.ps1 -Registry ghcr.io/your-org -Tag v0.2.0 -Push
+./scripts/build-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.2.0 -Push
 ```
 
 Bash:
 
 ```bash
-./scripts/build-image.sh --registry ghcr.io/your-org --tag v0.2.0 --push
+./scripts/build-image.sh --registry ghcr.io/mclifeleader --tag v0.2.0 --push
 ```
 
 Build and export tar (loadable with `docker load`):
@@ -197,6 +199,7 @@ This repo includes a catalog-ready server definition in:
 
 - `catalog/server.yaml`
 - `catalog/tools.json`
+- `assets/seq-otel-icon.svg`
 
 `catalog/server.yaml` declares:
 
@@ -205,6 +208,10 @@ This repo includes a catalog-ready server definition in:
 
 These files follow the Docker MCP registry server format, so they can be used in
 catalog generation/import workflows (for example via `docker/mcp-registry` tools).
+
+Submission checklist for Docker MCP Registry:
+
+- `docs/docker-mcp-registry-submission.md`
 
 ## MCP Client Integration Example
 

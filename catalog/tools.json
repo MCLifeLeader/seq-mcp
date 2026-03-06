@@ -1,18 +1,92 @@
 [
   {
+    "name": "seq_starter_help",
+    "description": "List compact starter alias tools for common Seq operations.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
     "name": "seq_connection_test",
-    "description": "Validate connectivity and authentication against Seq."
+    "description": "Validate connectivity and authentication against Seq.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "includeApiInfo": {
+          "type": "boolean",
+          "description": "Include API root payload in the test result."
+        }
+      }
+    }
   },
   {
     "name": "seq_api_catalog",
-    "description": "List official Seq API routes with methods and permissions."
+    "description": "List official Seq API routes with methods and permissions.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        },
+        "permission": {
+          "type": "string"
+        },
+        "search": {
+          "type": "string"
+        },
+        "includeNotes": {
+          "type": "boolean"
+        }
+      }
+    }
   },
   {
     "name": "seq_api_live_links",
-    "description": "Discover live name-to-route links from the target Seq API."
+    "description": "Discover live name-to-route links from the target Seq API.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sourceFilter": {
+          "type": "string"
+        }
+      }
+    }
   },
   {
     "name": "seq_api_request",
-    "description": "Execute a constrained Seq API request with method, route, and payload."
+    "description": "Execute a Seq API request with method, route template, params, query, and body.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        },
+        "path": {
+          "type": "string"
+        },
+        "pathParams": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "body": {
+          "type": ["object", "array", "string", "number", "boolean", "null"]
+        },
+        "contentType": {
+          "type": "string"
+        }
+      },
+      "required": ["method", "path"]
+    }
   }
 ]

@@ -1,0 +1,64 @@
+version: 2
+
+registries:
+  nuget-artifactory:
+    type: nuget-feed
+    url: https://api.nuget.org/v3/index.json
+
+  docker-artifactory:
+    type: docker-registry
+    url: https://index.docker.io/v1/
+    replaces-base: true
+
+  npm-artifactory:
+    type: npm-registry
+    url: https://registry.npmjs.org/
+    replaces-base: true
+
+updates:
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      backward-compatible-updates:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: nuget
+    directory: /
+    registries:
+      - nuget-artifactory
+    schedule:
+      interval: monthly
+    groups:
+      backward-compatible-updates:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: docker
+    directory: /
+    registries:
+      - docker-artifactory
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: npm
+    directory: /
+    registries:
+      - npm-artifactory
+    schedule:
+      interval: monthly
+    groups:
+      backward-compatible-updates:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

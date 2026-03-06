@@ -1,0 +1,77 @@
+{
+  // Recommended extensions - synced with devcontainer.json
+  // Extensions are auto-installed in the dev container via devcontainer.json
+  "recommendations": [
+    // === ESSENTIAL: Core development tools ===
+    "GitHub.copilot",
+    "GitHub.copilot-chat",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.csdevkit",
+    "esbenp.prettier-vscode",
+    "EditorConfig.EditorConfig",
+
+    // === Core Editor Enhancements ===
+    "DotJoshJohnson.xml",
+    "mechatroner.rainbow-csv",
+    "redhat.vscode-yaml",
+    "yzhang.markdown-all-in-one",
+    "streetsidesoftware.code-spell-checker",
+
+    // === GitHub & Git ===
+    "GitHub.vscode-github-actions",
+    "GitHub.vscode-pull-request-github",
+    "eamodio.gitlens",
+
+    // === AI Agents ===
+    "openai.chatgpt",
+
+    // === .NET & C# Development ===
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "ms-dotnettools.dotnet-maui",
+    "ms-azuretools.vscode-bicep",
+
+    // === JavaScript, TypeScript & React ===
+    "dbaeumer.vscode-eslint",
+    "dsznajder.es7-react-js-snippets",
+    "burkeholland.simple-react-snippets",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "styled-components.vscode-styled-components",
+
+    // === Database & SQL ===
+    "ms-mssql.mssql",
+    "ms-mssql.sql-database-projects",
+
+    // === API Development & Testing ===
+    "humao.rest-client",
+    "rangav.vscode-thunder-client",
+    "42Crunch.vscode-openapi",
+
+    // === Azure & Cloud ===
+    "ms-vscode.vscode-node-azure-pack",
+    "ms-azuretools.vscode-docker",
+    "ms-azuretools.vscode-azurefunctions",
+
+    // === PowerShell ===
+    "ms-vscode.powershell",
+
+    // === Collaboration ===
+    "ms-vsliveshare.vsliveshare",
+
+    // === Testing ===
+    "formulahendry.dotnet-test-explorer",
+    "ms-playwright.playwright",
+
+    // === Infrastructure as Code ===
+    "hashicorp.terraform",
+
+    // === Productivity ===
+    "ritwickdey.LiveServer",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+
+    // === Local Development (host machine, not in devcontainer) ===
+    "ms-vscode-remote.remote-containers",
+    "github.codespaces"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "dotnet.defaultSolution": "${workspaceFolder}.sln",
+  "remote.autoForwardPorts": false,
+  "remote.restoreForwardedPorts": false,
+  "remote.otherPortsAttributes": {
+    "onAutoForward": "ignore"
+  }
+}

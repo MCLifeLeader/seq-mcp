@@ -1,0 +1,248 @@
+{
+  "name": "Com.mbcarey.seq.DevContainer",
+
+  // Build from custom Dockerfile that removes the expired Yarn apt repository.
+  // This fixes GPG key errors (NO_PUBKEY 62D54FD4003F6525) during feature installation.
+  // More info: https://containers.dev/guide/dockerfile
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "options": ["--label=com.mbcarey.seq.devcontainer=developer-toolbox"]
+  },
+
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  "features": {
+    // Azure Developer CLI for Azure deployment workflows
+    "ghcr.io/azure/azure-dev/azd:latest": {
+      "version": "stable"
+    },
+    // Azure CLI for Azure resource management
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest",
+      "installBicep": true
+    },
+    // Common utilities including Zsh and Oh My Zsh
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true,
+      "upgradePackages": false,
+      "configureZshAsDefaultShell": false
+    },
+    // Docker-in-Docker for container development
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "azureDnsAutoDetection": true,
+      "installDockerBuildx": true,
+      "installDockerComposeSwitch": true,
+      "version": "latest",
+      "dockerDashComposeVersion": "latest"
+    },
+    // Additional .NET SDK versions and workloads (base image already has .NET 10.0)
+    // Note: The 'aspire' workload was deprecated; Aspire now uses NuGet packages + CLI
+    // Aspire templates are installed via postCreateCommand below
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "none",
+      "additionalVersions": "8.0,9.0",
+      "workloads": "wasm-tools"
+    },
+    // GitHub CLI for repository management
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "installDirectlyFromGitHubRelease": true,
+      "version": "latest"
+    },
+    // Node.js with npm, yarn, and pnpm for React/frontend development
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts",
+      "nodeGypDependencies": true,
+      "nvmVersion": "latest"
+    },
+    // PowerShell for scripting
+    "ghcr.io/devcontainers/features/powershell:1": {
+      "version": "latest"
+    },
+    // Git with latest version
+    "ghcr.io/devcontainers/features/git:1": {
+      "ppa": true,
+      "version": "latest"
+    },
+    // Java JDK for any Java-based tooling (optional, kept minimal)
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installGradle": false,
+      "installMaven": false
+    },
+    // Terraform for infrastructure as code
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "latest",
+      "tflint": "latest"
+    },
+    // Python for scripting and tooling
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "latest",
+      "installTools": true
+    }
+  },
+
+  // Configure tool-specific properties.
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "pwsh",
+        "terminal.integrated.defaultProfile.windows": "PowerShell",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[csharp]": {
+          "editor.defaultFormatter": "ms-dotnettools.csharp"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "dotnet.defaultSolution": "disable"
+      },
+      // VS Code extensions to install in the dev container.
+      "extensions": [
+        // Core Editor Enhancements
+        "DotJoshJohnson.xml",
+        "EditorConfig.EditorConfig",
+        "esbenp.prettier-vscode",
+        "mechatroner.rainbow-csv",
+        "redhat.vscode-yaml",
+        "yzhang.markdown-all-in-one",
+        "streetsidesoftware.code-spell-checker",
+
+        // GitHub & Git
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "GitHub.vscode-github-actions",
+        "GitHub.vscode-pull-request-github",
+        "eamodio.gitlens",
+
+        // AI Agents
+        "openai.chatgpt",
+
+        // .NET & C# Development
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.dotnet-maui",
+        "ms-azuretools.vscode-bicep",
+
+        // JavaScript, TypeScript & React
+        "dbaeumer.vscode-eslint",
+        "dsznajder.es7-react-js-snippets",
+        "burkeholland.simple-react-snippets",
+        "ms-vscode.vscode-typescript-next",
+        "bradlc.vscode-tailwindcss",
+        "styled-components.vscode-styled-components",
+
+        // Database & SQL
+        "ms-mssql.mssql",
+        "ms-mssql.sql-database-projects",
+
+        // API Development & Testing
+        "humao.rest-client",
+        "rangav.vscode-thunder-client",
+        "42Crunch.vscode-openapi",
+
+        // Azure & Cloud
+        "ms-vscode.vscode-node-azure-pack",
+        "ms-azuretools.vscode-docker",
+        "ms-azuretools.vscode-azurefunctions",
+
+        // PowerShell
+        "ms-vscode.powershell",
+
+        // Collaboration
+        "ms-vsliveshare.vsliveshare",
+
+        // Testing
+        "formulahendry.dotnet-test-explorer",
+        "ms-playwright.playwright",
+
+        // Infrastructure as Code
+        "hashicorp.terraform",
+
+        // Productivity
+        "ritwickdey.LiveServer",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense"
+      ]
+    }
+  },
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // Uses workspaceFolder to ensure correct path regardless of mount configuration
+  "postCreateCommand": "pwsh -File ${containerWorkspaceFolder}/post_devcontainer.ps1",
+
+  // Use 'onCreateCommand' to install Aspire templates (replaces deprecated 'aspire' workload)
+  "onCreateCommand": "dotnet new install Aspire.ProjectTemplates --force",
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [
+    3000, // React dev server (Vite/Create React App)
+    4010, // Custom Docker HTTP
+    4020, // Custom Docker HTTPS
+    5000, // ASP.NET HTTP
+    5001, // ASP.NET HTTPS
+    5173, // Vite dev server
+    7071, // Azure Functions
+    8080 // General web server
+  ],
+
+  "portsAttributes": {
+    "3000": {
+      "label": "React Dev Server",
+      "protocol": "http"
+    },
+    "4010": {
+      "label": "http-docker",
+      "protocol": "http"
+    },
+    "4020": {
+      "label": "https-docker",
+      "protocol": "https"
+    },
+    "5000": {
+      "label": "ASP.NET HTTP",
+      "protocol": "http"
+    },
+    "5001": {
+      "label": "ASP.NET HTTPS",
+      "protocol": "https"
+    },
+    "5173": {
+      "label": "Vite Dev Server",
+      "protocol": "http"
+    },
+    "7071": {
+      "label": "Azure Functions",
+      "protocol": "http"
+    },
+    "8080": {
+      "label": "Web Server",
+      "protocol": "http"
+    }
+  },
+
+  "otherPortsAttributes": {
+    "onAutoForward": "silent"
+  },
+
+  "containerEnv": {
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "DOTNET_ENVIRONMENT": "Development",
+    "ASPNETCORE_LOCALDEV": "true",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DOTNET_NOLOGO": "1",
+    "NODE_ENV": "development"
+  },
+
+  // Workspace is automatically mounted by VS Code to /workspaces/<project-name>
+  // No explicit mount needed - VS Code handles this with --workspace-mount-consistency cached
+
+  // Run as non-root user for security
+  "remoteUser": "vscode"
+}

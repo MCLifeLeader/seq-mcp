@@ -1,5 +1,5 @@
 {
-  "name": "seq-mcp",
+  "name": "mcp-seq-otel",
   "version": "0.1.0",
   "description": "Standalone MCP server for querying Datalust Seq",
   "type": "module",

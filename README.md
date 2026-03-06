@@ -1,4 +1,4 @@
-# seq-mcp
+# mcp-seq-otel
 
 Standalone MCP server that gives AI agents controlled read access to a user-owned Datalust Seq instance.
 
@@ -134,11 +134,12 @@ Compose run behavior:
 
 - Value precedence is: explicit script args -> existing environment variables -> `.env`.
 - If the target `.env` is missing, scripts create a generic template `.env` automatically.
-- When that generated generic template is in use, you must pass `SEQ_URL` and `SEQ_API_KEY` via script arguments.
+- When that generated generic template is in use, ensure `SEQ_URL` and `SEQ_API_KEY` are resolved via script args, existing environment variables, or a populated `.env` file.
 - `MCP_IMAGE_TAG` precedence is: explicit `-ImageTag`/`--image-tag` -> existing environment -> `.env` -> `latest`.
 - Scripts check image availability through compose service metadata and auto-build if the selected tag is not available.
 - By default, no container name is specified, so Docker auto-generates a random name.
 - You can override container name with `-ContainerName` (PowerShell) or `--container-name` (Bash).
+- For security, prefer setting `SEQ_API_KEY` via environment variables or `.env` instead of CLI args.
 
 Or use helper scripts:
 

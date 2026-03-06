@@ -220,23 +220,23 @@ If either is missing, the container exits immediately with a clear startup error
 ## Copy/Paste MCP Config (Codex and VS Code)
 
 Assumes the image already exists (`mcp/seq-otel:latest`).
-Use this when your MCP client accepts `command` + `args` + `env` JSON configuration:
 
 ```json
 {
   "mcpServers": {
     "seq-otel": {
+      "type": "stdio",
       "command": "docker",
       "args": [
         "run",
         "--rm",
         "-i",
+        "-e",
+        "SEQ_URL=http://host.docker.internal:10150/api",
+        "-e",
+        "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
         "mcp/seq-otel:latest"
-      ],
-      "env": {
-        "SEQ_URL": "http://host.docker.internal:10150/api",
-        "SEQ_API_KEY": "<YOUR_SEQ_API_KEY>"
-      }
+      ]
     }
   }
 }
@@ -269,7 +269,8 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
 ```json
 {
   "mcpServers": {
-    "seq": {
+    "seq-otel": {
+      "type": "stdio",
       "command": "docker",
       "args": [
         "run",
@@ -278,8 +279,8 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
         "-e",
         "SEQ_URL=https://seq.example.com/api",
         "-e",
-        "SEQ_API_KEY=${SEQ_API_KEY}",
-        "mcp/seq-otel:local"
+        "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
+        "mcp/seq-otel:latest"
       ]
     }
   }

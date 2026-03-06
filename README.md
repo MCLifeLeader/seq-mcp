@@ -103,10 +103,57 @@ node dist/index.js
 
 ## Docker Standalone Run
 
+Docker Hub documentation assets in this repo:
+
+- Auto-sync source for Hub long description: [`.dockerhub-readme.md`](.dockerhub-readme.md)
+- Main project reference: [`README.md`](README.md)
+
 Build image:
 
 ```bash
-docker build -t seq-mcp:local .
+docker build -t mcp/seq-otel:local .
+```
+
+Or use helper scripts:
+
+PowerShell:
+
+```powershell
+./scripts/build-image.ps1
+```
+
+Bash:
+
+```bash
+./scripts/build-image.sh
+```
+
+Build and push to registry (pullable by other Docker hosts):
+
+PowerShell:
+
+```powershell
+./scripts/build-image.ps1 -Registry ghcr.io/your-org -Tag v0.2.0 -Push
+```
+
+Bash:
+
+```bash
+./scripts/build-image.sh --registry ghcr.io/your-org --tag v0.2.0 --push
+```
+
+Build and export tar (loadable with `docker load`):
+
+PowerShell:
+
+```powershell
+./scripts/build-image.ps1 -SaveTar ./mcp-seq-otel.tar
+```
+
+Bash:
+
+```bash
+./scripts/build-image.sh --save-tar ./mcp-seq-otel.tar
 ```
 
 Run against local Seq:
@@ -115,7 +162,7 @@ Run against local Seq:
 docker run --rm -i \
   -e SEQ_URL=http://host.docker.internal:10150/api \
   -e SEQ_API_KEY=your-key \
-  seq-mcp:local
+  mcp/seq-otel:local
 ```
 
 Run against FQDN Seq:
@@ -124,17 +171,17 @@ Run against FQDN Seq:
 docker run --rm -i \
   -e SEQ_URL=https://seq.example.com/api \
   -e SEQ_API_KEY=your-key \
-  seq-mcp:local
+  mcp/seq-otel:local
 ```
 
 Run with Podman:
 
 ```bash
-podman build -t seq-mcp:local .
+podman build -t mcp/seq-otel:local .
 podman run --rm -i \
   -e SEQ_URL=https://seq.example.com/api \
   -e SEQ_API_KEY=your-key \
-  seq-mcp:local
+  mcp/seq-otel:local
 ```
 
 The container startup contract requires both variables to be present:
@@ -176,7 +223,7 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
         "SEQ_URL=https://seq.example.com/api",
         "-e",
         "SEQ_API_KEY=${SEQ_API_KEY}",
-        "seq-mcp:local"
+        "mcp/seq-otel:local"
       ]
     }
   }

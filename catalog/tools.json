@@ -1,0 +1,18 @@
+[
+  {
+    "name": "seq_connection_test",
+    "description": "Validate connectivity and authentication against Seq."
+  },
+  {
+    "name": "seq_api_catalog",
+    "description": "List official Seq API routes with methods and permissions."
+  },
+  {
+    "name": "seq_api_live_links",
+    "description": "Discover live name-to-route links from the target Seq API."
+  },
+  {
+    "name": "seq_api_request",
+    "description": "Execute a constrained Seq API request with method, route, and payload."
+  }
+]

@@ -10,6 +10,9 @@
 *.userosscache
 *.sln.docstates
 *.env
+.env
+.env.*
+!.env.example
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -416,3 +419,28 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Node.js logs and runtime data
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Node.js package manager caches
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Node.js framework/build caches and outputs
+.next/
+.nuxt/
+.svelte-kit/
+.parcel-cache/
+.turbo/
+dist/
+coverage/
+*.tsbuildinfo
+.eslintcache

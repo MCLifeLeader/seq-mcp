@@ -1,36 +1,189 @@
 # seq-mcp
 
-Unofficial MCP server for integrating AI agents with [Datalust Seq](https://datalust.co/) and OpenTelemetry data.
+Standalone MCP server that gives AI agents controlled read access to a user-owned Datalust Seq instance.
 
-## Purpose
+## What This Service Assumes
 
-This repository is being shaped into a Dockerized MCP server that enables tools like Codex and Copilot to query and analyze telemetry/log data stored in Seq.
+- You already run/manage your own Seq instance.
+- This service only needs connection settings.
 
-## Target Outcome
+Required configuration:
 
-- Provide MCP tools for safe, direct access to Seq data.
-- Support common telemetry workflows: search, traces, events, and diagnostics context.
-- Run as a container-first service suitable for local development and hosted deployment.
+- `SEQ_URL`
+- `SEQ_API_KEY`
 
-## Scope
+## URL Support
 
-- MCP server implementation (transport, tool surface, validation).
-- Seq connectivity and query abstraction.
-- Security controls for credentials, query boundaries, and output sanitization.
-- Docker image and runtime configuration.
+`SEQ_URL` accepts either:
 
-## Planned High-Level Architecture
+- Host URL (service will append `/api`):
+  - `http://localhost:10150`
+  - `https://seq.example.com`
+- Full API base URL:
+  - `http://localhost:10150/api`
+  - `https://seq.example.com/api`
 
-- `src/`: MCP server source code.
-- `Dockerfile` and/or compose manifests: container build and runtime.
-- Environment-driven configuration for Seq endpoint and API credentials.
-- Tool contracts designed for agent-safe, observable interactions.
+## Available MCP Tools
+
+- `seq_connection_test`: validates Seq connectivity and API reachability.
+- `seq_api_catalog`: returns the full official Seq route/verb/permission catalog.
+- `seq_api_live_links`: discovers live `name -> route` links from your Seq instance.
+- `seq_api_request`: generic verb/path invoker for any Seq API route.
+- `seq_<verb>_<route>`: auto-generated tool per official route+verb (from docs).
+
+## Seq API Key Permissions
+
+Based on current Seq documentation, this MCP server should run with least privilege.
+
+Recommended API key permission selection:
+
+- `Read`: enable
+- `Ingest`: disable
+- `Write`: disable
+- `Project`: disable
+- `Organization`: disable
+- `System`: disable
+
+Permission guidance for this project:
+
+| Permission | Needed now | Why |
+|---|---|---|
+| `Read` | Yes | Required for querying and retrieving events/data. |
+| `Ingest` | No | This MCP server does not write new events to Seq. |
+| `Write` | No | This MCP server does not modify Seq resources. |
+| `Project` | No | No project administration features are implemented. |
+| `Organization` | No | No org-level administration features are implemented. |
+| `System` | No | No system administration endpoints are used. |
+
+Endpoint mapping in current implementation:
+
+- `GET /health`: public endpoint.
+- `GET /api/events/resources`: public endpoint.
+- `GET /api/events`: `Read` permission demand.
+- `GET /api/events/{id}`: `Read` permission demand.
+- `GET /api/data`: `Read` permission demand.
+
+## API Key Header
+
+The server authenticates to Seq using the `X-Seq-ApiKey` header.
+
+## Resilience and Permission Handling
+
+Tool failures are returned as structured MCP error responses (`isError: true`) instead of crashing the server process.
+
+Current graceful handling includes:
+
+- `401 Unauthorized`: returns guidance to verify `SEQ_API_KEY` and `SEQ_URL`.
+- `403 Forbidden`: returns a permission-denied response with required permission hints (currently `Read`).
+- Network/timeout failures: returns connectivity diagnostics for AI clients.
+
+## Local Run (Node)
+
+```bash
+npm install
+npm run build
+```
+
+Windows PowerShell:
+
+```powershell
+$env:SEQ_URL = "http://localhost:10150/api"
+$env:SEQ_API_KEY = "your-key"
+node dist/index.js
+```
+
+## Docker Standalone Run
+
+Build image:
+
+```bash
+docker build -t seq-mcp:local .
+```
+
+Run against local Seq:
+
+```bash
+docker run --rm -i \
+  -e SEQ_URL=http://host.docker.internal:10150/api \
+  -e SEQ_API_KEY=your-key \
+  seq-mcp:local
+```
+
+Run against FQDN Seq:
+
+```bash
+docker run --rm -i \
+  -e SEQ_URL=https://seq.example.com/api \
+  -e SEQ_API_KEY=your-key \
+  seq-mcp:local
+```
+
+Run with Podman:
+
+```bash
+podman build -t seq-mcp:local .
+podman run --rm -i \
+  -e SEQ_URL=https://seq.example.com/api \
+  -e SEQ_API_KEY=your-key \
+  seq-mcp:local
+```
+
+The container startup contract requires both variables to be present:
+
+- `SEQ_URL`
+- `SEQ_API_KEY`
+
+If either is missing, the container exits immediately with a clear startup error.
+
+## Docker MCP Catalog Compatibility
+
+This repo includes a catalog-ready server definition in:
+
+- `catalog/server.yaml`
+- `catalog/tools.json`
+
+`catalog/server.yaml` declares:
+
+- `SEQ_URL` as a required user parameter (mapped via `config.env`)
+- `SEQ_API_KEY` as a required secret (mapped via `config.secrets`)
+
+These files follow the Docker MCP registry server format, so they can be used in
+catalog generation/import workflows (for example via `docker/mcp-registry` tools).
+
+## MCP Client Integration Example
+
+Use a command-based MCP client entry that launches the container with stdin/stdout attached.
+
+```json
+{
+  "mcpServers": {
+    "seq": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "SEQ_URL=https://seq.example.com/api",
+        "-e",
+        "SEQ_API_KEY=${SEQ_API_KEY}",
+        "seq-mcp:local"
+      ]
+    }
+  }
+}
+```
+
+## Security Notes
+
+- Do not commit keys.
+- Use least-privilege Seq API keys.
+- Prefer HTTPS for non-local Seq instances.
+
+## API Mapping Artifact
+
+- Full generated API map: [`docs/api-map.md`](docs/api-map.md)
 
 ## Status
 
-Initial repository cleanup and instruction refocus completed. Core server implementation is the next phase.
-
-## Notes
-
-- This project is unofficial and not affiliated with Datalust.
-- Seq is a product of Datalust.
+Core standalone server scaffold is implemented and buildable.

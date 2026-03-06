@@ -1,5 +1,5 @@
-name: seq-mcp
-image: seq-mcp:local
+name: seq-otel
+image: mcp/seq-otel:latest
 type: server
 meta:
   category: observability
@@ -9,25 +9,35 @@ meta:
     - opentelemetry
     - logs
 about:
-  title: Seq
-  description: Query and inspect Datalust Seq API data through MCP tools.
+  title: Seq OTel MCP Server
+  description: MCP server for querying and operating on Datalust Seq telemetry and server APIs.
+  icon: https://raw.githubusercontent.com/MCLifeLeader/seq-mcp/main/assets/seq-otel-icon.svg
+source:
+  type: github
+  url: https://github.com/MCLifeLeader/seq-mcp
+  ref: main
+  path: /
 config:
-  description: Configure the connection to your Seq instance.
-  secrets:
-    - name: seq-mcp.seq_api_key
-      env: SEQ_API_KEY
-      example: <SEQ_API_KEY>
-      description: Seq API key with least-privilege read access.
-      required: true
+  transport: stdio
+  command:
+    type: docker
+    configSchema:
+      type: object
+      properties:
+        seq_url:
+          type: string
+          description: Seq base URL or API URL (for example https://seq.example.com/api).
+      required:
+        - seq_url
+  description: Configure connection settings for the target Seq instance.
   env:
     - name: SEQ_URL
+      description: URL for the target Seq server root or /api endpoint.
       example: https://seq.example.com/api
-      value: "{{seq-mcp.seq_url}}"
-  parameters:
-    type: object
-    properties:
-      seq_url:
-        type: string
-        description: Seq base URL or API URL (for example https://seq.example.com/api).
-    required:
-      - seq_url
+      value: "{{seq-otel.seq_url}}"
+  secrets:
+    - name: seq-otel.seq_api_key
+      env: SEQ_API_KEY
+      description: Seq API key with required permissions for selected operations.
+      example: <SEQ_API_KEY>
+      required: true

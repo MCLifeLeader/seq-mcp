@@ -199,6 +199,7 @@ This repo includes a catalog-ready server definition in:
 
 - `catalog/server.yaml`
 - `catalog/tools.json`
+- `assets/seq-otel-icon.svg`
 
 `catalog/server.yaml` declares:
 
@@ -207,6 +208,10 @@ This repo includes a catalog-ready server definition in:
 
 These files follow the Docker MCP registry server format, so they can be used in
 catalog generation/import workflows (for example via `docker/mcp-registry` tools).
+
+Submission checklist for Docker MCP Registry:
+
+- `docs/docker-mcp-registry-submission.md`
 
 ## MCP Client Integration Example
 

@@ -7,6 +7,9 @@ param(
     [string]$Tag = "",
 
     [Parameter()]
+    [string]$LatestTag = "latest",
+
+    [Parameter()]
     [string]$Registry = "",
 
     [Parameter()]
@@ -60,6 +63,16 @@ else {
     }
 }
 
+$latestImage = if ([string]::IsNullOrWhiteSpace($LatestTag)) {
+    ""
+}
+elseif ([string]::IsNullOrWhiteSpace($Registry)) {
+    "{0}:{1}" -f $ImageName, $LatestTag
+}
+else {
+    "{0}/{1}:{2}" -f $Registry.TrimEnd("/"), $ImageName, $LatestTag
+}
+
 $localImage = if ([string]::IsNullOrWhiteSpace($Tag)) {
     $ImageName
 }
@@ -89,13 +102,26 @@ Stop-RunningContainersForImage $localImage
 if ($fullImage -ne $localImage) {
     Stop-RunningContainersForImage $fullImage
 }
+if (-not [string]::IsNullOrWhiteSpace($latestImage) -and $latestImage -ne $localImage -and $latestImage -ne $fullImage) {
+    Stop-RunningContainersForImage $latestImage
+}
 
 Write-Host "Building image: $fullImage"
-docker build `
-    --build-arg IMAGE_VERSION=$imageVersion `
-    --build-arg VCS_REF=$gitRef `
-    --build-arg BUILD_DATE=$buildDate `
-    -t $fullImage .
+$buildArgs = @(
+    "build",
+    "--build-arg", "IMAGE_VERSION=$imageVersion",
+    "--build-arg", "VCS_REF=$gitRef",
+    "--build-arg", "BUILD_DATE=$buildDate",
+    "-t", $fullImage
+)
+
+if (-not [string]::IsNullOrWhiteSpace($latestImage) -and $latestImage -ne $fullImage) {
+    $buildArgs += @("-t", $latestImage)
+}
+
+$buildArgs += "."
+
+docker @buildArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "Docker build failed."
@@ -107,14 +133,32 @@ if ($Push.IsPresent) {
     if ($LASTEXITCODE -ne 0) {
         throw "Docker push failed."
     }
+
+    if (-not [string]::IsNullOrWhiteSpace($latestImage) -and $latestImage -ne $fullImage) {
+        Write-Host "Pushing image: $latestImage"
+        docker push $latestImage
+        if ($LASTEXITCODE -ne 0) {
+            throw "Docker push failed."
+        }
+    }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($SaveTar)) {
     Write-Host "Saving image archive: $SaveTar"
-    docker save -o $SaveTar $fullImage
+    if (-not [string]::IsNullOrWhiteSpace($latestImage) -and $latestImage -ne $fullImage) {
+        docker save -o $SaveTar $fullImage $latestImage
+    }
+    else {
+        docker save -o $SaveTar $fullImage
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "Docker save failed."
     }
 }
 
-Write-Host "Done: $fullImage"
+if (-not [string]::IsNullOrWhiteSpace($latestImage) -and $latestImage -ne $fullImage) {
+    Write-Host "Done: $fullImage and $latestImage"
+}
+else {
+    Write-Host "Done: $fullImage"
+}

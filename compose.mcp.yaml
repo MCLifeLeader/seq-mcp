@@ -1,11 +1,11 @@
 services:
   seq-otel-mcp:
-    image: mcp/seq-otel:${MCP_IMAGE_TAG:-latest}
+    image: mcp/seq-otel${MCP_IMAGE_TAG:+:${MCP_IMAGE_TAG}}
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        IMAGE_VERSION: ${MCP_IMAGE_TAG:-latest}
+        IMAGE_VERSION: ${MCP_IMAGE_TAG:-dev}
     stdin_open: true
     tty: false
     environment:

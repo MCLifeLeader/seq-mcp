@@ -11,6 +11,7 @@ Use first-party sources for all endpoint and permission decisions:
 - Server API endpoints table: https://docs.datalust.co/docs/server-http-api
 - HTTP API usage guide: https://docs.datalust.co/docs/using-the-http-api
 - API keys and permissions: https://docs.datalust.co/docs/api-keys
+- Project wiki: https://github.com/MCLifeLeader/seq-mcp/wiki
 
 ## Files To Update When Seq Changes
 

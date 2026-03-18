@@ -181,7 +181,7 @@ Bash:
 ./scripts/build-image.sh --registry ghcr.io/mclifeleader --tag v0.3.1 --push
 ```
 
-The build scripts apply `:latest` by default alongside any explicit version tag. Pass an empty latest-tag value if you need to disable that behavior.
+The build scripts apply `:latest` by default alongside any explicit version tag. To disable this behavior, pass an empty latest-tag value (PowerShell: `-LatestTag ""`; Bash: `--latest-tag ""`).
 
 Build and export tar (loadable with `docker load`):
 

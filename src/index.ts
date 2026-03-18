@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import process from "node:process";
 import { z } from "zod";
 import { loadConfig, type ServerConfig } from "./config.js";
 import { formatJson } from "./format.js";
@@ -658,22 +659,29 @@ async function start(): Promise<void> {
   await server.connect(transport);
 }
 
-function writeFatalError(prefix: string, error: unknown): void {
+function writeFatalError(
+  prefix: string,
+  error: unknown,
+  onWritten?: () => void
+): void {
   const message = error instanceof Error ? error.stack ?? error.message : String(error);
-  process.stderr.write(`${prefix}: ${message}\n`);
+  process.stderr.write(`${prefix}: ${message}\n`, onWritten);
 }
 
-process.on("uncaughtException", (error) => {
-  writeFatalError("mcp-seq-otel uncaught exception", error);
-  process.exit(1);
+process.on("uncaughtException", (error: Error) => {
+  writeFatalError("mcp-seq-otel uncaught exception", error, () => {
+    process.exit(1);
+  });
 });
 
-process.on("unhandledRejection", (reason) => {
-  writeFatalError("mcp-seq-otel unhandled rejection", reason);
-  process.exit(1);
+process.on("unhandledRejection", (reason: unknown) => {
+  writeFatalError("mcp-seq-otel unhandled rejection", reason, () => {
+    process.exit(1);
+  });
 });
 
 start().catch((error: unknown) => {
-  writeFatalError("mcp-seq-otel startup error", error);
-  process.exit(1);
+  writeFatalError("mcp-seq-otel startup error", error, () => {
+    process.exit(1);
+  });
 });

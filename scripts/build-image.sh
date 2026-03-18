@@ -3,7 +3,7 @@ set -euo pipefail
 
 IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otel}"
 TAG="${TAG:-}"
-LATEST_TAG="${LATEST_TAG:-latest}"
+LATEST_TAG="${LATEST_TAG-latest}"
 REGISTRY="${REGISTRY:-}"
 PUSH="${PUSH:-false}"
 SAVE_TAR="${SAVE_TAR:-}"

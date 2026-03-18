@@ -61,10 +61,15 @@ async function startFakeSeqServer() {
 }
 
 async function withClient(env, run) {
+  const mergedEnv = {
+    ...process.env,
+    ...env
+  };
+
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: ["dist/index.js"],
-    env,
+    env: mergedEnv,
     stderr: "pipe",
     cwd: process.cwd()
   });
@@ -160,10 +165,14 @@ test("stdio MCP server resolves health from the Seq host root when SEQ_URL inclu
 });
 
 test("stdio MCP server fails fast with actionable stderr when config is missing", async () => {
+  const env = { ...process.env };
+  delete env.SEQ_URL;
+  delete env.SEQ_API_KEY;
+
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: ["dist/index.js"],
-    env: {},
+    env,
     stderr: "pipe",
     cwd: process.cwd()
   });

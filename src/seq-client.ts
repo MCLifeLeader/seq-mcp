@@ -58,12 +58,34 @@ export class SeqClient {
     this.timeoutMs = config.seqTimeoutMs;
   }
 
+  public getApiBaseUrl(): string {
+    return this.apiBase.toString().replace(/\/+$/, "");
+  }
+
+  public getHealthUrl(): string {
+    return new URL("/health", `${this.apiOrigin}/`).toString();
+  }
+
+  public async getHealth(): Promise<unknown> {
+    return this.sendRequest(new URL("/health", `${this.apiOrigin}/`), {
+      method: "GET"
+    });
+  }
+
   public async get(options: SeqRequestOptions): Promise<unknown> {
     return this.request({ ...options, method: "GET" });
   }
 
   public async request(options: SeqRequestOptions): Promise<unknown> {
     const endpoint = this.resolveEndpoint(options.path);
+
+    return this.sendRequest(endpoint, options);
+  }
+
+  private async sendRequest(
+    endpoint: URL,
+    options: Omit<SeqRequestOptions, "path"> & { path?: string }
+  ): Promise<unknown> {
 
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) {

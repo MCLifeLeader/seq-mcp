@@ -112,12 +112,46 @@ test("stdio MCP server initializes and answers seq_connection_test", async () =>
 
         const payload = JSON.parse(result.content[0].text);
         assert.equal(payload.seqApiBase, `${fakeSeq.baseUrl}/api`);
+        assert.equal(payload.seqHealthUrl, `${fakeSeq.baseUrl}/health`);
         assert.deepEqual(payload.health, {
           status: "healthy",
           description: "Fake Seq health endpoint"
         });
         assert.equal(payload.api.Product, "Seq");
         assert.equal(getStderr(), "");
+      }
+    );
+  } finally {
+    await fakeSeq.close();
+  }
+});
+
+test("stdio MCP server resolves health from the Seq host root when SEQ_URL includes /api", async () => {
+  const fakeSeq = await startFakeSeqServer();
+
+  try {
+    await withClient(
+      {
+        SEQ_URL: `${fakeSeq.baseUrl}/api`,
+        SEQ_API_KEY: "test-api-key"
+      },
+      async (client) => {
+        const result = await client.callTool({
+          name: "seq_connection_test",
+          arguments: {
+            includeApiInfo: false
+          }
+        });
+
+        assert.equal(result.isError, undefined);
+
+        const payload = JSON.parse(result.content[0].text);
+        assert.equal(payload.seqApiBase, `${fakeSeq.baseUrl}/api`);
+        assert.equal(payload.seqHealthUrl, `${fakeSeq.baseUrl}/health`);
+        assert.deepEqual(payload.health, {
+          status: "healthy",
+          description: "Fake Seq health endpoint"
+        });
       }
     );
   } finally {

@@ -167,13 +167,13 @@ Build and push to registry (pullable by other Docker hosts):
 PowerShell:
 
 ```powershell
-./scripts/build-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.2.0 -Push
+./scripts/build-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.3.0 -Push
 ```
 
 Bash:
 
 ```bash
-./scripts/build-image.sh --registry ghcr.io/mclifeleader --tag v0.2.0 --push
+./scripts/build-image.sh --registry ghcr.io/mclifeleader --tag v0.3.0 --push
 ```
 
 Build and export tar (loadable with `docker load`):

@@ -73,7 +73,7 @@ function Ensure-DotEnvTemplate([string]$Path) {
 MCP_GENERIC_DOTENV=true
 SEQ_URL=
 SEQ_API_KEY=
-MCP_IMAGE_TAG=latest
+MCP_IMAGE_TAG=
 "@ | Set-Content -Path $Path -Encoding utf8
 }
 
@@ -136,10 +136,6 @@ Ensure-DotEnvTemplate $dotenvPath
 $usingGenericDotEnv = Select-String -Path $dotenvPath -Pattern '^\s*MCP_GENERIC_DOTENV\s*=\s*true\s*$' -Quiet
 
 Import-DotEnvIfPresent $dotenvPath
-
-if (-not $env:MCP_IMAGE_TAG) {
-    $env:MCP_IMAGE_TAG = "latest"
-}
 
 if ($usingGenericDotEnv -and (-not $env:SEQ_URL -or -not $env:SEQ_API_KEY)) {
     throw "This run is using a generated generic .env template at '$dotenvPath'. Ensure SEQ_URL and SEQ_API_KEY are configured via environment variables, a populated .env, or script arguments."

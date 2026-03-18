@@ -15,7 +15,7 @@ Usage: scripts/run-mcp-compose.sh [options]
 Options:
   --seq-url <url>           Seq URL (optional if SEQ_URL already set)
   --seq-api-key <key>       Seq API key (optional if SEQ_API_KEY already set)
-  --image-tag <tag>         Image tag override (default: latest)
+  --image-tag <tag>         Image tag override (optional)
   --compose-file <path>     Compose file (default: compose.mcp.yaml)
   --container-name <name>   Container name override (default: Docker-generated random name)
   --build                   Build image before run
@@ -45,7 +45,7 @@ ensure_dotenv_file() {
 MCP_GENERIC_DOTENV=true
 SEQ_URL=
 SEQ_API_KEY=
-MCP_IMAGE_TAG=latest
+MCP_IMAGE_TAG=
 EOF
 }
 
@@ -165,10 +165,6 @@ if [[ -f "$DOTENV_PATH" ]]; then
       fi
     fi
   done < "$DOTENV_PATH"
-fi
-
-if [[ -z "${MCP_IMAGE_TAG:-}" ]]; then
-  export MCP_IMAGE_TAG="latest"
 fi
 
 if [[ "$USING_GENERIC_DOTENV" == "true" ]]; then

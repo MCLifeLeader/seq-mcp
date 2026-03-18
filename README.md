@@ -120,7 +120,7 @@ Docker Hub documentation assets in this repo:
 Build image:
 
 ```bash
-docker build -t mcp/seq-otel:latest .
+docker build -t mcp/seq-otel .
 ```
 
 Run via Docker Compose (recommended for MCP stdio):
@@ -128,13 +128,13 @@ Run via Docker Compose (recommended for MCP stdio):
 PowerShell:
 
 ```powershell
-./scripts/run-mcp-compose.ps1 -SeqUrl "http://localhost:10150" -SeqApiKey "<YOUR_SEQ_API_KEY>" -ImageTag latest -Build
+./scripts/run-mcp-compose.ps1 -SeqUrl "http://localhost:10150" -SeqApiKey "<YOUR_SEQ_API_KEY>" -Build
 ```
 
 Bash:
 
 ```bash
-./scripts/run-mcp-compose.sh --seq-url "http://localhost:10150" --seq-api-key "<YOUR_SEQ_API_KEY>" --image-tag latest --build
+./scripts/run-mcp-compose.sh --seq-url "http://localhost:10150" --seq-api-key "<YOUR_SEQ_API_KEY>" --build
 ```
 
 Compose run behavior:
@@ -142,7 +142,7 @@ Compose run behavior:
 - Value precedence is: explicit script args -> existing environment variables -> `.env`.
 - If the target `.env` is missing, scripts create a generic template `.env` automatically.
 - When that generated generic template is in use, ensure `SEQ_URL` and `SEQ_API_KEY` are resolved via script args, existing environment variables, or a populated `.env` file.
-- `MCP_IMAGE_TAG` precedence is: explicit `-ImageTag`/`--image-tag` -> existing environment -> `.env` -> `latest`.
+- `MCP_IMAGE_TAG` is optional; when empty, Compose uses an untagged image reference (`mcp/seq-otel`).
 - Scripts check image availability through compose service metadata and auto-build if the selected tag is not available.
 - By default, no container name is specified, so Docker auto-generates a random name.
 - You can override container name with `-ContainerName` (PowerShell) or `--container-name` (Bash).
@@ -196,7 +196,7 @@ Run against local Seq:
 docker run --rm -i \
   -e SEQ_URL=http://host.docker.internal:10150 \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:latest
+  mcp/seq-otel
 ```
 
 Run against FQDN Seq:
@@ -205,17 +205,17 @@ Run against FQDN Seq:
 docker run --rm -i \
   -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:latest
+  mcp/seq-otel
 ```
 
 Run with Podman:
 
 ```bash
-podman build -t mcp/seq-otel:latest .
+podman build -t mcp/seq-otel .
 podman run --rm -i \
   -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel:latest
+  mcp/seq-otel
 ```
 
 The container startup contract requires both variables to be present:
@@ -227,7 +227,7 @@ If either is missing, the container exits immediately with a clear startup error
 
 ## Copy/Paste MCP Config (Codex and VS Code)
 
-Assumes the image already exists (`mcp/seq-otel:latest`).
+Assumes the image already exists (`mcp/seq-otel`).
 
 ```json
 {
@@ -243,7 +243,7 @@ Assumes the image already exists (`mcp/seq-otel:latest`).
         "SEQ_URL=http://host.docker.internal:10150",
         "-e",
         "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
-        "mcp/seq-otel:latest"
+        "mcp/seq-otel"
       ]
     }
   }
@@ -288,7 +288,7 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
         "SEQ_URL=https://seq.example.com",
         "-e",
         "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
-        "mcp/seq-otel:latest"
+        "mcp/seq-otel"
       ]
     }
   }

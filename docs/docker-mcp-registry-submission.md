@@ -19,7 +19,7 @@ Use this checklist before opening a PR to `https://github.com/docker/mcp-registr
 ## Preflight (Required)
 
 1. Confirm image is publicly pullable.
-   - Example: `mcp/seq-otel:latest` or a versioned tag.
+   - Example: `mcp/seq-otel` (implicit latest) or a versioned tag.
 
 2. Verify `catalog/server.yaml`.
    - `image` is correct and pullable.

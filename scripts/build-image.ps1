@@ -4,7 +4,7 @@ param(
     [string]$ImageName = "mcp/seq-otel",
 
     [Parameter()]
-    [string]$Tag = "latest",
+    [string]$Tag = "",
 
     [Parameter()]
     [string]$Registry = "",
@@ -44,13 +44,35 @@ function Stop-RunningContainersForImage([string]$ImageRef) {
 }
 
 $fullImage = if ([string]::IsNullOrWhiteSpace($Registry)) {
-    "{0}:{1}" -f $ImageName, $Tag
+    if ([string]::IsNullOrWhiteSpace($Tag)) {
+        $ImageName
+    }
+    else {
+        "{0}:{1}" -f $ImageName, $Tag
+    }
 }
 else {
-    "{0}/{1}:{2}" -f $Registry.TrimEnd("/"), $ImageName, $Tag
+    if ([string]::IsNullOrWhiteSpace($Tag)) {
+        "{0}/{1}" -f $Registry.TrimEnd("/"), $ImageName
+    }
+    else {
+        "{0}/{1}:{2}" -f $Registry.TrimEnd("/"), $ImageName, $Tag
+    }
 }
 
-$localImage = "{0}:{1}" -f $ImageName, $Tag
+$localImage = if ([string]::IsNullOrWhiteSpace($Tag)) {
+    $ImageName
+}
+else {
+    "{0}:{1}" -f $ImageName, $Tag
+}
+
+$imageVersion = if ([string]::IsNullOrWhiteSpace($Tag)) {
+    "none"
+}
+else {
+    $Tag
+}
 
 $gitRef = "unknown"
 if (Get-Command git -ErrorAction SilentlyContinue) {
@@ -70,7 +92,7 @@ if ($fullImage -ne $localImage) {
 
 Write-Host "Building image: $fullImage"
 docker build `
-    --build-arg IMAGE_VERSION=$Tag `
+    --build-arg IMAGE_VERSION=$imageVersion `
     --build-arg VCS_REF=$gitRef `
     --build-arg BUILD_DATE=$buildDate `
     -t $fullImage .

@@ -1,5 +1,5 @@
 name: seq-otel
-image: mcp/seq-otel:latest
+image: mcp/seq-otel
 type: server
 meta:
   category: observability

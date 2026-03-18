@@ -2,7 +2,7 @@
 set -euo pipefail
 
 IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otel}"
-TAG="${TAG:-latest}"
+TAG="${TAG:-}"
 REGISTRY="${REGISTRY:-}"
 PUSH="${PUSH:-false}"
 SAVE_TAR="${SAVE_TAR:-}"
@@ -25,7 +25,7 @@ Usage: scripts/build-image.sh [options]
 
 Options:
   --image-name <name>   Image name (default: mcp/seq-otel)
-  --tag <tag>           Image tag (default: latest)
+  --tag <tag>           Image tag (optional)
   --registry <registry> Optional registry prefix (example: ghcr.io/my-org)
   --push                Push after build
   --save-tar <path>     Save image archive to tar file
@@ -68,12 +68,26 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -n "$REGISTRY" ]]; then
-  FULL_IMAGE="${REGISTRY%/}/${IMAGE_NAME}:${TAG}"
+  if [[ -n "$TAG" ]]; then
+    FULL_IMAGE="${REGISTRY%/}/${IMAGE_NAME}:${TAG}"
+  else
+    FULL_IMAGE="${REGISTRY%/}/${IMAGE_NAME}"
+  fi
 else
-  FULL_IMAGE="${IMAGE_NAME}:${TAG}"
+  if [[ -n "$TAG" ]]; then
+    FULL_IMAGE="${IMAGE_NAME}:${TAG}"
+  else
+    FULL_IMAGE="${IMAGE_NAME}"
+  fi
 fi
 
-LOCAL_IMAGE="${IMAGE_NAME}:${TAG}"
+if [[ -n "$TAG" ]]; then
+  LOCAL_IMAGE="${IMAGE_NAME}:${TAG}"
+  IMAGE_VERSION="$TAG"
+else
+  LOCAL_IMAGE="${IMAGE_NAME}"
+  IMAGE_VERSION="none"
+fi
 
 if command -v git >/dev/null 2>&1; then
   VCS_REF="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
@@ -90,7 +104,7 @@ fi
 
 echo "Building image: ${FULL_IMAGE}"
 docker build \
-  --build-arg IMAGE_VERSION="${TAG}" \
+  --build-arg IMAGE_VERSION="${IMAGE_VERSION}" \
   --build-arg VCS_REF="${VCS_REF}" \
   --build-arg BUILD_DATE="${BUILD_DATE}" \
   -t "${FULL_IMAGE}" .

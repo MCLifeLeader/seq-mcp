@@ -306,6 +306,7 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
 - Full generated API map: [`docs/api-map.md`](docs/api-map.md)
 - Maintenance/update playbook: [`docs/seq-mcp-maintenance.md`](docs/seq-mcp-maintenance.md)
 - Project skill for update workflows: [`.github/skills/seq-mcp-maintainer/SKILL.md`](.github/skills/seq-mcp-maintainer/SKILL.md)
+- Project wiki (how-to and operations): https://github.com/MCLifeLeader/seq-mcp/wiki
 
 ## Status
 

@@ -15,6 +15,7 @@ Use this checklist before opening a PR to `https://github.com/docker/mcp-registr
 - `assets/seq-otel-icon.svg`
 - `README.md`
 - `.dockerhub-readme.md`
+- Wiki entry point: https://github.com/MCLifeLeader/seq-mcp/wiki
 
 ## Preflight (Required)
 

@@ -1,6 +1,6 @@
 {
   "name": "mcp-seq-otel",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Standalone MCP server for querying Datalust Seq. Home page for Datalust Seq can be found at https://datalust.co/",
   "type": "module",
   "main": "dist/index.js",
@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "check": "tsc --noEmit -p tsconfig.json"
+    "check": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run build && node --test test"
   },
   "engines": {
     "node": ">=22.0.0"

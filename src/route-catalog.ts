@@ -208,7 +208,6 @@ export const SEQ_ROUTE_CATALOG: SeqRouteCatalogEntry[] = [
   { path: "api/workspaces/resources", method: "GET", permission: "Public", additional: "", notes: "" },
   { path: "api/workspaces/template", method: "GET", permission: "Write", additional: "", notes: "" },
   { path: "health", method: "GET", permission: "Public", additional: "", notes: "" },
-  { path: "health/cluster", method: "GET", permission: "Public", additional: "", notes: "" },
   { path: "ingest/clef", method: "POST", permission: "Public", additional: "If the RequireApiKeyForWritingEvents setting is enabled, requests must be authenticated and have the Ingest permission.", notes: "Allows Cross-Site POSTs" },
   { path: "ingest/otlp/v1/logs", method: "POST", permission: "Public", additional: "If the RequireApiKeyForWritingEvents setting is enabled, requests must be authenticated and have the Ingest permission.", notes: "Allows Cross-Site POSTs" },
   { path: "ingest/otlp/v1/metrics", method: "POST", permission: "Public", additional: "If the RequireApiKeyForWritingEvents setting is enabled, requests must be authenticated and have the Ingest permission.", notes: "Allows Cross-Site POSTs" },

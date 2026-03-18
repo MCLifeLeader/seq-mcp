@@ -25,7 +25,7 @@ Required configuration:
 
 ## Available MCP Tools
 
-- `seq_connection_test`: validates Seq connectivity and API reachability.
+- `seq_connection_test`: validates Seq connectivity and API reachability, and reports the resolved root `/health` URL used for the check.
 - `seq_starter_help`: lists the compact starter alias tools.
 - `seq_starter_overview`: quick health, user, diagnostics, signals, and workspace summary.
 - `seq_starter_events_search`: common event search by filter/signal/time range.
@@ -92,6 +92,11 @@ Current graceful handling includes:
 - `401 Unauthorized`: returns guidance to verify `SEQ_API_KEY` and `SEQ_URL`.
 - `403 Forbidden`: returns a permission-denied response with route-derived permission hints when available.
 - Network/timeout failures: returns connectivity diagnostics for AI clients.
+
+Health check behavior:
+
+- `seq_connection_test` always probes the Seq host root at `/health`.
+- If `SEQ_URL` is configured as either `http://host:port` or `http://host:port/api`, the health check resolves to `http://host:port/health`.
 
 ## Local Run (Node)
 
@@ -167,14 +172,16 @@ Build and push to registry (pullable by other Docker hosts):
 PowerShell:
 
 ```powershell
-./scripts/build-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.3.0 -Push
+./scripts/build-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.3.1 -Push
 ```
 
 Bash:
 
 ```bash
-./scripts/build-image.sh --registry ghcr.io/mclifeleader --tag v0.3.0 --push
+./scripts/build-image.sh --registry ghcr.io/mclifeleader --tag v0.3.1 --push
 ```
+
+The build scripts apply `:latest` by default alongside any explicit version tag. To disable this behavior, pass an empty latest-tag value (PowerShell: `-LatestTag ""`; Bash: `--latest-tag ""`).
 
 Build and export tar (loadable with `docker load`):
 

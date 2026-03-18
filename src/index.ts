@@ -1,7 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import process from "node:process";
 import { z } from "zod";
-import { loadConfig } from "./config.js";
+import { loadConfig, type ServerConfig } from "./config.js";
 import { formatJson } from "./format.js";
 import { SeqClient, SeqHttpError, SeqNetworkError } from "./seq-client.js";
 import {
@@ -9,12 +10,12 @@ import {
   type SeqRouteCatalogEntry
 } from "./route-catalog.js";
 
-const config = loadConfig();
-const seq = new SeqClient(config);
+let config: ServerConfig | undefined;
+let seq: SeqClient | undefined;
 
 const server = new McpServer({
   name: "mcp-seq-otel",
-  version: "0.3.0"
+  version: "0.3.1"
 });
 
 interface ToolResult {
@@ -25,6 +26,22 @@ interface ToolResult {
 
 const stringRecordSchema = z.record(z.string(), z.string()).optional();
 const genericJsonSchema = z.unknown().optional();
+
+function getConfig(): ServerConfig {
+  if (!config) {
+    config = loadConfig();
+  }
+
+  return config;
+}
+
+function getSeqClient(): SeqClient {
+  if (!seq) {
+    seq = new SeqClient(getConfig());
+  }
+
+  return seq;
+}
 
 function okResult(value: unknown): ToolResult {
   return {
@@ -213,7 +230,7 @@ async function callCatalogRoute(
   }
 ): Promise<unknown> {
   const resolvedPath = resolvePathTemplate(path, options?.pathParams);
-  return seq.request({
+  return getSeqClient().request({
     method,
     path: resolvedPath,
     query: options?.query,
@@ -225,7 +242,7 @@ async function callCatalogRoute(
 async function discoverLiveLinks(): Promise<
   Array<{ source: string; name: string; route: string }>
 > {
-  const root = (await seq.request({ method: "GET", path: "" })) as {
+  const root = (await getSeqClient().request({ method: "GET", path: "" })) as {
     Links?: Record<string, string>;
   };
 
@@ -240,7 +257,7 @@ async function discoverLiveLinks(): Promise<
     }
 
     try {
-      const resourceDoc = (await seq.request({
+      const resourceDoc = (await getSeqClient().request({
         method: "GET",
         path: route
       })) as { Links?: Record<string, string> };
@@ -479,14 +496,16 @@ server.tool(
   },
   async ({ includeApiInfo }) => {
     return withGracefulErrors("seq_connection_test", async () => {
-      const health = await seq.request({ method: "GET", path: "/health" });
+      const seqClient = getSeqClient();
+      const health = await seqClient.getHealth();
       const result: Record<string, unknown> = {
-        seqApiBase: config.seqUrl,
+        seqApiBase: seqClient.getApiBaseUrl(),
+        seqHealthUrl: seqClient.getHealthUrl(),
         health
       };
 
       if (includeApiInfo) {
-        result.api = await seq.request({ method: "GET", path: "" });
+        result.api = await seqClient.request({ method: "GET", path: "" });
       }
 
       return result;
@@ -570,7 +589,7 @@ server.tool(
     return withGracefulErrors("seq_api_request", async () => {
       const resolvedPath = resolvePathTemplate(path, pathParams);
 
-      const response = await seq.request({
+      const response = await getSeqClient().request({
         method,
         path: resolvedPath,
         query,
@@ -610,7 +629,7 @@ for (const entry of SEQ_ROUTE_CATALOG) {
         toolName,
         async () => {
           const resolvedPath = resolvePathTemplate(entry.path, pathParams);
-          const response = await seq.request({
+          const response = await getSeqClient().request({
             method: entry.method,
             path: resolvedPath,
             query,
@@ -634,12 +653,35 @@ for (const entry of SEQ_ROUTE_CATALOG) {
 }
 
 async function start(): Promise<void> {
+  getConfig();
+  getSeqClient();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
+function writeFatalError(
+  prefix: string,
+  error: unknown,
+  onWritten?: () => void
+): void {
+  const message = error instanceof Error ? error.stack ?? error.message : String(error);
+  process.stderr.write(`${prefix}: ${message}\n`, onWritten);
+}
+
+process.on("uncaughtException", (error: Error) => {
+  writeFatalError("mcp-seq-otel uncaught exception", error, () => {
+    process.exit(1);
+  });
+});
+
+process.on("unhandledRejection", (reason: unknown) => {
+  writeFatalError("mcp-seq-otel unhandled rejection", reason, () => {
+    process.exit(1);
+  });
+});
+
 start().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`mcp-seq-otel startup error: ${message}\n`);
-  process.exit(1);
+  writeFatalError("mcp-seq-otel startup error", error, () => {
+    process.exit(1);
+  });
 });

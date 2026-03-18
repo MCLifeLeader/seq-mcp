@@ -3,6 +3,7 @@ set -euo pipefail
 
 IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otel}"
 TAG="${TAG:-}"
+LATEST_TAG="${LATEST_TAG-latest}"
 REGISTRY="${REGISTRY:-}"
 PUSH="${PUSH:-false}"
 SAVE_TAR="${SAVE_TAR:-}"
@@ -26,6 +27,7 @@ Usage: scripts/build-image.sh [options]
 Options:
   --image-name <name>   Image name (default: mcp/seq-otel)
   --tag <tag>           Image tag (optional)
+  --latest-tag <tag>    Additional tag to apply (default: latest, use empty string to disable)
   --registry <registry> Optional registry prefix (example: ghcr.io/my-org)
   --push                Push after build
   --save-tar <path>     Save image archive to tar file
@@ -41,6 +43,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --tag)
       TAG="$2"
+      shift 2
+      ;;
+    --latest-tag)
+      LATEST_TAG="$2"
       shift 2
       ;;
     --registry)
@@ -81,6 +87,14 @@ else
   fi
 fi
 
+if [[ -n "$LATEST_TAG" && -n "$REGISTRY" ]]; then
+  LATEST_IMAGE="${REGISTRY%/}/${IMAGE_NAME}:${LATEST_TAG}"
+elif [[ -n "$LATEST_TAG" ]]; then
+  LATEST_IMAGE="${IMAGE_NAME}:${LATEST_TAG}"
+else
+  LATEST_IMAGE=""
+fi
+
 if [[ -n "$TAG" ]]; then
   LOCAL_IMAGE="${IMAGE_NAME}:${TAG}"
   IMAGE_VERSION="$TAG"
@@ -101,22 +115,48 @@ stop_running_containers_for_image "$LOCAL_IMAGE"
 if [[ "$FULL_IMAGE" != "$LOCAL_IMAGE" ]]; then
   stop_running_containers_for_image "$FULL_IMAGE"
 fi
+if [[ -n "$LATEST_IMAGE" && "$LATEST_IMAGE" != "$LOCAL_IMAGE" && "$LATEST_IMAGE" != "$FULL_IMAGE" ]]; then
+  stop_running_containers_for_image "$LATEST_IMAGE"
+fi
 
 echo "Building image: ${FULL_IMAGE}"
-docker build \
+BUILD_ARGS=(
+  build
   --build-arg IMAGE_VERSION="${IMAGE_VERSION}" \
   --build-arg VCS_REF="${VCS_REF}" \
   --build-arg BUILD_DATE="${BUILD_DATE}" \
-  -t "${FULL_IMAGE}" .
+  -t "${FULL_IMAGE}"
+)
+
+if [[ -n "$LATEST_IMAGE" && "$LATEST_IMAGE" != "$FULL_IMAGE" ]]; then
+  BUILD_ARGS+=(-t "${LATEST_IMAGE}")
+fi
+
+BUILD_ARGS+=(.)
+
+docker "${BUILD_ARGS[@]}"
 
 if [[ "$PUSH" == "true" ]]; then
   echo "Pushing image: ${FULL_IMAGE}"
   docker push "${FULL_IMAGE}"
+
+  if [[ -n "$LATEST_IMAGE" && "$LATEST_IMAGE" != "$FULL_IMAGE" ]]; then
+    echo "Pushing image: ${LATEST_IMAGE}"
+    docker push "${LATEST_IMAGE}"
+  fi
 fi
 
 if [[ -n "$SAVE_TAR" ]]; then
   echo "Saving image archive: ${SAVE_TAR}"
-  docker save -o "${SAVE_TAR}" "${FULL_IMAGE}"
+  if [[ -n "$LATEST_IMAGE" && "$LATEST_IMAGE" != "$FULL_IMAGE" ]]; then
+    docker save -o "${SAVE_TAR}" "${FULL_IMAGE}" "${LATEST_IMAGE}"
+  else
+    docker save -o "${SAVE_TAR}" "${FULL_IMAGE}"
+  fi
 fi
 
-echo "Done: ${FULL_IMAGE}"
+if [[ -n "$LATEST_IMAGE" && "$LATEST_IMAGE" != "$FULL_IMAGE" ]]; then
+  echo "Done: ${FULL_IMAGE} and ${LATEST_IMAGE}"
+else
+  echo "Done: ${FULL_IMAGE}"
+fi

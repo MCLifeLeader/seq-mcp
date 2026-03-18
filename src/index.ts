@@ -638,8 +638,22 @@ async function start(): Promise<void> {
   await server.connect(transport);
 }
 
+function writeFatalError(prefix: string, error: unknown): void {
+  const message = error instanceof Error ? error.stack ?? error.message : String(error);
+  process.stderr.write(`${prefix}: ${message}\n`);
+}
+
+process.on("uncaughtException", (error) => {
+  writeFatalError("mcp-seq-otel uncaught exception", error);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  writeFatalError("mcp-seq-otel unhandled rejection", reason);
+  process.exit(1);
+});
+
 start().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`mcp-seq-otel startup error: ${message}\n`);
+  writeFatalError("mcp-seq-otel startup error", error);
   process.exit(1);
 });

@@ -2,6 +2,10 @@
 
 Standalone MCP server that gives AI agents controlled API access to a user-owned Datalust Seq instance.
 
+## Official Seq API Docs
+
+- Official Seq HTTP API usage guide: [Using the HTTP API](https://datalust.co/docs/using-the-http-api)
+
 ## What This Service Assumes
 
 - You already run/manage your own Seq instance.
@@ -240,6 +244,14 @@ Optional stability controls:
 - `SEQ_MAX_RESPONSE_BYTES`: max inbound response size, default `1048576`.
 
 If either is missing, the container exits immediately with a clear startup error.
+
+Live contract check:
+
+```bash
+npm run validate:live-contract
+```
+
+This command uses the current `SEQ_URL` and `SEQ_API_KEY` to compare live advertised routes against `src/route-catalog.ts` and to probe safe read-only endpoints for stale `404` entries.
 
 ## Copy/Paste MCP Config (Codex and VS Code)
 

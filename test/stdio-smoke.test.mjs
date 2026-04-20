@@ -9,6 +9,13 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 async function startFakeSeqServer() {
   const requests = [];
 
+  function hasOwnershipScope(url) {
+    return (
+      url.searchParams.get("shared") === "true" &&
+      url.searchParams.get("personal") === "true"
+    );
+  }
+
   const server = http.createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     const bodyChunks = [];
@@ -53,6 +60,51 @@ async function startFakeSeqServer() {
             AppsResources: "api/apps/resources",
             SettingsResources: "api/settings/resources"
           }
+        })
+      );
+      return;
+    }
+
+    if (url.pathname === "/api/users/current") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(
+        JSON.stringify({
+          Username: "admin",
+          Id: "user-admin"
+        })
+      );
+      return;
+    }
+
+    if (url.pathname === "/api/diagnostics/status") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(
+        JSON.stringify({
+          StatusMessages: []
+        })
+      );
+      return;
+    }
+
+    if (["/api/signals", "/api/workspaces", "/api/dashboards", "/api/alerts"].includes(url.pathname)) {
+      if (!hasOwnershipScope(url)) {
+        response.writeHead(400, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            error: "Only shared or personal items can be requested."
+          })
+        );
+        return;
+      }
+
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(
+        JSON.stringify({
+          scope: {
+            shared: url.searchParams.get("shared"),
+            personal: url.searchParams.get("personal")
+          },
+          items: []
         })
       );
       return;
@@ -274,6 +326,84 @@ test("stdio MCP server fails fast with actionable stderr when config is missing"
   assert.match(stderr, /Invalid configuration/);
   assert.match(stderr, /SEQ_URL/);
   assert.match(stderr, /SEQ_API_KEY/);
+});
+
+test("ownership-scoped starter list tools send shared and personal filters", async () => {
+  const fakeSeq = await startFakeSeqServer();
+
+  try {
+    await withClient(
+      {
+        SEQ_URL: fakeSeq.baseUrl,
+        SEQ_API_KEY: "test-api-key"
+      },
+      async (client) => {
+        const signalResult = await client.callTool({
+          name: "seq_starter_signals_list",
+          arguments: {}
+        });
+        const dashboardResult = await client.callTool({
+          name: "seq_starter_dashboards_list",
+          arguments: {}
+        });
+        const alertResult = await client.callTool({
+          name: "seq_starter_alerts_list",
+          arguments: {}
+        });
+
+        for (const result of [signalResult, dashboardResult, alertResult]) {
+          assert.equal(result.isError, undefined);
+          const payload = JSON.parse(result.content[0].text);
+          assert.deepEqual(payload.response.scope, {
+            shared: "true",
+            personal: "true"
+          });
+        }
+
+        assert.match(fakeSeq.requests[0].search, /shared=true/);
+        assert.match(fakeSeq.requests[0].search, /personal=true/);
+      }
+    );
+  } finally {
+    await fakeSeq.close();
+  }
+});
+
+test("seq_starter_overview uses scoped list requests for signals and workspaces", async () => {
+  const fakeSeq = await startFakeSeqServer();
+
+  try {
+    await withClient(
+      {
+        SEQ_URL: fakeSeq.baseUrl,
+        SEQ_API_KEY: "test-api-key"
+      },
+      async (client) => {
+        const result = await client.callTool({
+          name: "seq_starter_overview",
+          arguments: {}
+        });
+
+        assert.equal(result.isError, undefined);
+        const payload = JSON.parse(result.content[0].text);
+        assert.deepEqual(payload.signals.scope, {
+          shared: "true",
+          personal: "true"
+        });
+        assert.deepEqual(payload.workspaces.scope, {
+          shared: "true",
+          personal: "true"
+        });
+
+        const signalRequest = fakeSeq.requests.find((request) => request.path === "/api/signals");
+        const workspaceRequest = fakeSeq.requests.find((request) => request.path === "/api/workspaces");
+        assert.match(signalRequest?.search ?? "", /shared=true/);
+        assert.match(workspaceRequest?.search ?? "", /personal=true/);
+      }
+    );
+  } finally {
+    await fakeSeq.close();
+  }
 });
 
 test("seq_api_request only allows official catalog routes", async () => {

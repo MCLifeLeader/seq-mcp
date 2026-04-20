@@ -29,6 +29,10 @@ const MAX_PATH_PARAM_ENTRIES = 10;
 const MAX_STRING_VALUE_LENGTH = 2_048;
 const MAX_ROUTE_TEMPLATE_LENGTH = 256;
 const MAX_DISCOVERED_LINKS = 1_000;
+const OWNERSHIP_SCOPED_LIST_QUERY = Object.freeze({
+  shared: "true",
+  personal: "true"
+});
 
 interface ToolResult {
   [key: string]: unknown;
@@ -375,14 +379,20 @@ async function discoverLiveLinks(): Promise<
   return links;
 }
 
+function callOwnershipScopedListRoute(path: string): Promise<unknown> {
+  return callCatalogRoute("GET", path, {
+    query: OWNERSHIP_SCOPED_LIST_QUERY
+  });
+}
+
 server.tool("seq_starter_overview", {}, async () => {
   return withGracefulErrors("seq_starter_overview", async () => {
     const calls = await Promise.allSettled([
       callCatalogRoute("GET", "api", {}),
       callCatalogRoute("GET", "api/users/current", {}),
       callCatalogRoute("GET", "api/diagnostics/status", {}),
-      callCatalogRoute("GET", "api/signals", {}),
-      callCatalogRoute("GET", "api/workspaces", {})
+      callOwnershipScopedListRoute("api/signals"),
+      callOwnershipScopedListRoute("api/workspaces")
     ]);
 
     const valueOrError = (result: PromiseSettledResult<unknown>): unknown => {
@@ -505,7 +515,7 @@ server.tool("seq_starter_signals_list", {}, async () => {
   const route = findCatalogEntry("GET", "api/signals");
   return withGracefulErrors(
     "seq_starter_signals_list",
-    async () => callCatalogRoute("GET", "api/signals"),
+    async () => callOwnershipScopedListRoute("api/signals"),
     route?.permission
   );
 });
@@ -532,7 +542,7 @@ server.tool("seq_starter_dashboards_list", {}, async () => {
   const route = findCatalogEntry("GET", "api/dashboards");
   return withGracefulErrors(
     "seq_starter_dashboards_list",
-    async () => callCatalogRoute("GET", "api/dashboards"),
+    async () => callOwnershipScopedListRoute("api/dashboards"),
     route?.permission
   );
 });
@@ -541,7 +551,7 @@ server.tool("seq_starter_alerts_list", {}, async () => {
   const route = findCatalogEntry("GET", "api/alerts");
   return withGracefulErrors(
     "seq_starter_alerts_list",
-    async () => callCatalogRoute("GET", "api/alerts"),
+    async () => callOwnershipScopedListRoute("api/alerts"),
     route?.permission
   );
 });

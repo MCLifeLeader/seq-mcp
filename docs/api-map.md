@@ -6,8 +6,8 @@ This document is intentionally concise. It highlights what matters for day-to-da
 
 - Implementation catalog: `src/route-catalog.ts`
 - Runtime catalog tool: `seq_api_catalog`
-- Official Seq endpoint table: https://docs.datalust.co/docs/server-http-api
-- HTTP API usage guidance: https://docs.datalust.co/docs/using-the-http-api
+- Official Seq endpoint table: [Server HTTP API](https://docs.datalust.co/docs/server-http-api)
+- HTTP API usage guidance: [Using the HTTP API](https://docs.datalust.co/docs/using-the-http-api)
 
 If this file conflicts with generated/catalog data, treat `src/route-catalog.ts` as authoritative.
 
@@ -21,7 +21,7 @@ Source: `src/route-catalog.ts`
 ### Method Distribution
 
 | Method | Count |
-|---|---:|
+| --- | ---: |
 | GET | 135 |
 | POST | 33 |
 | PUT | 24 |
@@ -30,7 +30,7 @@ Source: `src/route-catalog.ts`
 ### Permission Distribution
 
 | Permission | Count |
-|---|---:|
+| --- | ---: |
 | System | 51 |
 | Public | 49 |
 | Read | 46 |
@@ -41,7 +41,7 @@ Source: `src/route-catalog.ts`
 ## Important Route Families
 
 | Family | Why It Matters | Typical Permission |
-|---|---|---|
+| --- | --- | --- |
 | `events` | Core search/scan/stream workflows | `Read` |
 | `data` | Query execution used by starter flows | `Read` |
 | `signals` | Signal create/read/update/delete | `Read`, `Write` |
@@ -67,3 +67,4 @@ Use this order when verifying a target Seq instance:
 2. `seq_api_catalog`
 3. `seq_api_live_links`
 4. `seq_api_request` against one known safe route (for example `GET /api/events/resources`)
+5. `npm run validate:live-contract` from the repo when `SEQ_URL` and `SEQ_API_KEY` are available in the shell environment

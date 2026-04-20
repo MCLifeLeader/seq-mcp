@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "check": "tsc --noEmit -p tsconfig.json",
+    "validate:live-contract": "tsx src/live-contract-check.ts",
     "test": "npm run build && node --test test/*.test.mjs"
   },
   "engines": {

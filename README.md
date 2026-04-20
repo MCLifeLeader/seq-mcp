@@ -37,13 +37,14 @@ Required configuration:
 - `seq_starter_events_stream`: bounded live-tail style stream call.
 - `seq_api_catalog`: returns the full official Seq route/verb/permission catalog.
 - `seq_api_live_links`: discovers live `name -> route` links from your Seq instance.
-- `seq_api_request`: generic verb/path invoker for any Seq API route.
+- `seq_api_request`: generic verb/path invoker for official cataloged Seq API routes.
 - `seq_<verb>_<route>`: auto-generated tool per official route+verb (from docs).
 
 Scope note:
 
 - `seq_starter_*` tools are focused on common read workflows.
 - `seq_api_request` and `seq_<verb>_<route>` expose the broader HTTP API surface from the Seq endpoint catalog, including non-`GET` routes.
+- Generic requests are constrained to official route templates, with bounded query/path maps and request/response size limits to reduce accidental high-cost calls.
 
 ## Seq API Key Permissions
 
@@ -51,9 +52,9 @@ Use least privilege based on the exact tools/workflows your MCP client will call
 
 Authoritative Datalust references:
 
-- API keys and permission model: https://docs.datalust.co/docs/api-keys
-- HTTP API usage guide: https://docs.datalust.co/docs/using-the-http-api
-- Server endpoint + permission table: https://docs.datalust.co/docs/server-http-api
+- API keys and permission model: [Datalust API Keys](https://docs.datalust.co/docs/api-keys)
+- HTTP API usage guide: [Using the HTTP API](https://docs.datalust.co/docs/using-the-http-api)
+- Server endpoint + permission table: [Server HTTP API](https://docs.datalust.co/docs/server-http-api)
 
 Recommended permission profiles:
 
@@ -63,7 +64,7 @@ Recommended permission profiles:
 Permission guidance for this project:
 
 | Permission | Needed now | Why |
-|---|---|---|
+| --- | --- | --- |
 | `Read` | Yes | Required by starter query/retrieval workflows. |
 | `Ingest` | Usually No | Needed only when calling ingestion routes such as `ingest/*` or `api/events/raw` when API-key-for-writing is required. |
 | `Write` | Maybe | Needed for write routes (for example signals, dashboards, alerts, permalinks, SQL queries). |
@@ -92,6 +93,8 @@ Current graceful handling includes:
 - `401 Unauthorized`: returns guidance to verify `SEQ_API_KEY` and `SEQ_URL`.
 - `403 Forbidden`: returns a permission-denied response with route-derived permission hints when available.
 - Network/timeout failures: returns connectivity diagnostics for AI clients.
+- Oversized requests/responses: returns actionable limit errors instead of exhausting the server process.
+- Binary responses: returns structured metadata with base64 payloads for non-text endpoints such as icon routes.
 
 Health check behavior:
 
@@ -230,6 +233,12 @@ The container startup contract requires both variables to be present:
 - `SEQ_URL`
 - `SEQ_API_KEY`
 
+Optional stability controls:
+
+- `SEQ_TIMEOUT_MS`: request timeout in milliseconds, default `30000`, bounded to `1000-120000`.
+- `SEQ_MAX_REQUEST_BYTES`: max outbound request body size, default `262144`.
+- `SEQ_MAX_RESPONSE_BYTES`: max inbound response size, default `1048576`.
+
 If either is missing, the container exits immediately with a clear startup error.
 
 ## Copy/Paste MCP Config (Codex and VS Code)
@@ -313,7 +322,7 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
 - Full generated API map: [`docs/api-map.md`](docs/api-map.md)
 - Maintenance/update playbook: [`docs/seq-mcp-maintenance.md`](docs/seq-mcp-maintenance.md)
 - Project skill for update workflows: [`.github/skills/seq-mcp-maintainer/SKILL.md`](.github/skills/seq-mcp-maintainer/SKILL.md)
-- Project wiki (how-to and operations): https://github.com/MCLifeLeader/seq-mcp/wiki
+- Project wiki (how-to and operations): [seq-mcp wiki](https://github.com/MCLifeLeader/seq-mcp/wiki)
 
 ## Status
 

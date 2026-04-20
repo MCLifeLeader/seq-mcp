@@ -43,12 +43,44 @@ export class SeqNetworkError extends Error {
   }
 }
 
+export class SeqRequestValidationError extends Error {
+  public readonly endpoint: string;
+
+  public constructor(endpoint: string, message: string) {
+    super(message);
+    this.name = "SeqRequestValidationError";
+    this.endpoint = endpoint;
+  }
+}
+
+export class SeqResponseTooLargeError extends Error {
+  public readonly endpoint: string;
+  public readonly responseBytes: number;
+  public readonly maxResponseBytes: number;
+
+  public constructor(
+    endpoint: string,
+    responseBytes: number,
+    maxResponseBytes: number
+  ) {
+    super(
+      `Seq response exceeded ${maxResponseBytes} bytes for ${endpoint} (${responseBytes} bytes).`
+    );
+    this.name = "SeqResponseTooLargeError";
+    this.endpoint = endpoint;
+    this.responseBytes = responseBytes;
+    this.maxResponseBytes = maxResponseBytes;
+  }
+}
+
 export class SeqClient {
   private readonly apiBase: URL;
   private readonly apiOrigin: string;
   private readonly apiBasePath: string;
   private readonly apiKey: string;
   private readonly timeoutMs: number;
+  private readonly maxRequestBytes: number;
+  private readonly maxResponseBytes: number;
 
   public constructor(config: ServerConfig) {
     this.apiBase = new URL(config.seqUrl);
@@ -56,6 +88,8 @@ export class SeqClient {
     this.apiBasePath = this.apiBase.pathname.replace(/\/+$/, "");
     this.apiKey = config.seqApiKey;
     this.timeoutMs = config.seqTimeoutMs;
+    this.maxRequestBytes = config.seqMaxRequestBytes;
+    this.maxResponseBytes = config.seqMaxResponseBytes;
   }
 
   public getApiBaseUrl(): string {
@@ -86,7 +120,6 @@ export class SeqClient {
     endpoint: URL,
     options: Omit<SeqRequestOptions, "path"> & { path?: string }
   ): Promise<unknown> {
-
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) {
         endpoint.searchParams.set(key, String(value));
@@ -110,6 +143,14 @@ export class SeqClient {
           headers["Content-Type"] === "application/json"
             ? JSON.stringify(options.body)
             : String(options.body);
+
+        const requestBytes = Buffer.byteLength(requestPayload);
+        if (requestBytes > this.maxRequestBytes) {
+          throw new SeqRequestValidationError(
+            endpoint.pathname,
+            `Request body exceeds ${this.maxRequestBytes} bytes.`
+          );
+        }
       }
 
       const response = await fetch(endpoint, {
@@ -119,10 +160,34 @@ export class SeqClient {
         signal: controller.signal
       });
 
-      const contentType = response.headers.get("content-type") ?? "";
-      const payload = contentType.includes("application/json")
-        ? await response.json()
-        : await response.text();
+      const contentLength = response.headers.get("content-length");
+      if (contentLength) {
+        const parsedContentLength = Number.parseInt(contentLength, 10);
+        if (
+          Number.isFinite(parsedContentLength) &&
+          parsedContentLength > this.maxResponseBytes
+        ) {
+          throw new SeqResponseTooLargeError(
+            endpoint.pathname,
+            parsedContentLength,
+            this.maxResponseBytes
+          );
+        }
+      }
+
+      const payloadBytes = Buffer.from(await response.arrayBuffer());
+      if (payloadBytes.byteLength > this.maxResponseBytes) {
+        throw new SeqResponseTooLargeError(
+          endpoint.pathname,
+          payloadBytes.byteLength,
+          this.maxResponseBytes
+        );
+      }
+
+      const payload = this.parsePayload(
+        response.headers.get("content-type") ?? "application/octet-stream",
+        payloadBytes
+      );
 
       if (!response.ok) {
         throw new SeqHttpError(
@@ -135,7 +200,11 @@ export class SeqClient {
 
       return payload;
     } catch (error: unknown) {
-      if (error instanceof SeqHttpError) {
+      if (
+        error instanceof SeqHttpError ||
+        error instanceof SeqRequestValidationError ||
+        error instanceof SeqResponseTooLargeError
+      ) {
         throw error;
       }
 
@@ -163,5 +232,35 @@ export class SeqClient {
       normalizedPath,
       `${this.apiBase.toString().replace(/\/+$/, "")}/`
     );
+  }
+
+  private parsePayload(contentType: string, payloadBytes: Buffer): unknown {
+    if (payloadBytes.byteLength === 0) {
+      return null;
+    }
+
+    if (contentType.includes("json")) {
+      const text = payloadBytes.toString("utf8");
+
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
+    }
+
+    if (
+      contentType.startsWith("text/") ||
+      contentType.includes("xml") ||
+      contentType.includes("javascript")
+    ) {
+      return payloadBytes.toString("utf8");
+    }
+
+    return {
+      contentType,
+      byteLength: payloadBytes.byteLength,
+      base64: payloadBytes.toString("base64")
+    };
   }
 }

@@ -4,7 +4,13 @@ import process from "node:process";
 import { z } from "zod";
 import { loadConfig, type ServerConfig } from "./config.js";
 import { formatJson } from "./format.js";
-import { SeqClient, SeqHttpError, SeqNetworkError } from "./seq-client.js";
+import {
+  SeqClient,
+  SeqHttpError,
+  SeqNetworkError,
+  SeqRequestValidationError,
+  SeqResponseTooLargeError
+} from "./seq-client.js";
 import {
   SEQ_ROUTE_CATALOG,
   type SeqRouteCatalogEntry
@@ -18,13 +24,22 @@ const server = new McpServer({
   version: "0.3.1"
 });
 
+const MAX_QUERY_ENTRIES = 25;
+const MAX_PATH_PARAM_ENTRIES = 10;
+const MAX_STRING_VALUE_LENGTH = 2_048;
+const MAX_ROUTE_TEMPLATE_LENGTH = 256;
+const MAX_DISCOVERED_LINKS = 1_000;
+
 interface ToolResult {
   [key: string]: unknown;
   content: Array<{ type: "text"; text: string }>;
   isError?: boolean;
 }
 
-const stringRecordSchema = z.record(z.string(), z.string()).optional();
+const constrainedStringSchema = z.string().min(1).max(MAX_STRING_VALUE_LENGTH);
+const stringRecordSchema = z
+  .record(z.string().min(1).max(100), constrainedStringSchema)
+  .optional();
 const genericJsonSchema = z.unknown().optional();
 
 function getConfig(): ServerConfig {
@@ -59,6 +74,50 @@ function errorResult(
   error: unknown,
   requiredPermission?: string
 ): ToolResult {
+  if (error instanceof SeqRequestValidationError) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: formatJson({
+            error: "Invalid Seq API request.",
+            tool,
+            endpoint: error.endpoint,
+            detail: error.message,
+            remediation: [
+              "Use seq_api_catalog to choose an official Seq route template.",
+              "Reduce path, query, or body size if this request exceeds the server limits."
+            ]
+          })
+        }
+      ]
+    };
+  }
+
+  if (error instanceof SeqResponseTooLargeError) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: formatJson({
+            error: "Seq API response exceeded the configured size limit.",
+            tool,
+            endpoint: error.endpoint,
+            responseBytes: error.responseBytes,
+            maxResponseBytes: error.maxResponseBytes,
+            remediation: [
+              "Narrow the Seq query or time range.",
+              "Lower count-style parameters when available.",
+              "Increase SEQ_MAX_RESPONSE_BYTES only if larger payloads are expected and safe."
+            ]
+          })
+        }
+      ]
+    };
+  }
+
   if (error instanceof SeqHttpError) {
     if (error.status === 401) {
       return {
@@ -190,6 +249,39 @@ function slugify(input: string): string {
     .replace(/_+/g, "_");
 }
 
+function ensureRecordWithinLimit(
+  label: string,
+  value: Record<string, string> | undefined,
+  maxEntries: number
+): void {
+  if (!value) {
+    return;
+  }
+
+  const entries = Object.keys(value).length;
+  if (entries > maxEntries) {
+    throw new SeqRequestValidationError(
+      label,
+      `${label} supports at most ${maxEntries} entries.`
+    );
+  }
+}
+
+function getCatalogEntryOrThrow(
+  method: SeqMethod,
+  path: string
+): SeqRouteCatalogEntry {
+  const entry = findCatalogEntry(method, path);
+  if (!entry) {
+    throw new SeqRequestValidationError(
+      path,
+      `Unsupported Seq route '${method} ${path}'.`
+    );
+  }
+
+  return entry;
+}
+
 function resolvePathTemplate(
   template: string,
   pathParams?: Record<string, string>
@@ -250,6 +342,10 @@ async function discoverLiveLinks(): Promise<
   const rootLinks = root.Links ?? {};
 
   for (const [name, route] of Object.entries(rootLinks)) {
+    if (links.length >= MAX_DISCOVERED_LINKS) {
+      break;
+    }
+
     links.push({ source: "api", name, route });
 
     if (!route.endsWith("/resources")) {
@@ -265,6 +361,10 @@ async function discoverLiveLinks(): Promise<
       for (const [resourceName, resourceRoute] of Object.entries(
         resourceDoc.Links ?? {}
       )) {
+        if (links.length >= MAX_DISCOVERED_LINKS) {
+          break;
+        }
+
         links.push({ source: route, name: resourceName, route: resourceRoute });
       }
     } catch {
@@ -564,7 +664,7 @@ server.tool(
     return withGracefulErrors("seq_api_live_links", async () => {
       const links = await discoverLiveLinks();
       const filtered = sourceFilter
-        ? links.filter((l) => l.source.includes(sourceFilter))
+        ? links.filter((l) => l.source.toLowerCase().includes(sourceFilter.toLowerCase()))
         : links;
 
       return {
@@ -579,14 +679,22 @@ server.tool(
   "seq_api_request",
   {
     method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
-    path: z.string().min(1),
+    path: z.string().min(1).max(MAX_ROUTE_TEMPLATE_LENGTH),
     pathParams: stringRecordSchema,
     query: stringRecordSchema,
     body: genericJsonSchema,
-    contentType: z.string().optional()
+    contentType: z.string().min(1).max(128).refine((value) => !/[\r\n]/.test(value), {
+      message: "contentType must not contain line breaks"
+    }).optional()
   },
   async ({ method, path, pathParams, query, body, contentType }) => {
+    const route = findCatalogEntry(method, path);
+
     return withGracefulErrors("seq_api_request", async () => {
+      ensureRecordWithinLimit("pathParams", pathParams, MAX_PATH_PARAM_ENTRIES);
+      ensureRecordWithinLimit("query", query, MAX_QUERY_ENTRIES);
+
+      const catalogEntry = route ?? getCatalogEntryOrThrow(method, path);
       const resolvedPath = resolvePathTemplate(path, pathParams);
 
       const response = await getSeqClient().request({
@@ -601,9 +709,10 @@ server.tool(
         route: path,
         resolvedPath,
         method,
+        permission: catalogEntry.permission,
         response
       };
-    });
+    }, route?.permission);
   }
 );
 
@@ -622,12 +731,16 @@ for (const entry of SEQ_ROUTE_CATALOG) {
       pathParams: stringRecordSchema,
       query: stringRecordSchema,
       body: genericJsonSchema,
-      contentType: z.string().optional()
+      contentType: z.string().min(1).max(128).refine((value) => !/[\r\n]/.test(value), {
+        message: "contentType must not contain line breaks"
+      }).optional()
     },
     async ({ pathParams, query, body, contentType }) => {
       return withGracefulErrors(
         toolName,
         async () => {
+          ensureRecordWithinLimit("pathParams", pathParams, MAX_PATH_PARAM_ENTRIES);
+          ensureRecordWithinLimit("query", query, MAX_QUERY_ENTRIES);
           const resolvedPath = resolvePathTemplate(entry.path, pathParams);
           const response = await getSeqClient().request({
             method: entry.method,

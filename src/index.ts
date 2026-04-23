@@ -28,6 +28,7 @@ const MAX_QUERY_ENTRIES = 25;
 const MAX_PATH_PARAM_ENTRIES = 10;
 const MAX_STRING_VALUE_LENGTH = 2_048;
 const MAX_ROUTE_TEMPLATE_LENGTH = 256;
+const MAX_RESOLVED_PATH_LENGTH = 4_096;
 const MAX_DISCOVERED_LINKS = 1_000;
 const OWNERSHIP_SCOPED_LIST_QUERY = Object.freeze({
   shared: "true",
@@ -292,16 +293,26 @@ function resolvePathTemplate(
 ): string {
   const withoutQueryTemplate = template.replace(/\{\?[^}]+\}/g, "");
 
-  return withoutQueryTemplate.replace(/\{([^}]+)\}/g, (_, key: string) => {
+  const resolvedPath = withoutQueryTemplate.replace(/\{([^}]+)\}/g, (_, key: string) => {
     const value = pathParams?.[key];
     if (!value) {
-      throw new Error(
+      throw new SeqRequestValidationError(
+        template,
         `Missing path parameter '${key}' for route template '${template}'.`
       );
     }
 
     return encodeURIComponent(value);
   });
+
+  if (resolvedPath.length > MAX_RESOLVED_PATH_LENGTH) {
+    throw new SeqRequestValidationError(
+      template,
+      `Resolved path exceeds ${MAX_RESOLVED_PATH_LENGTH} characters for route template '${template}'.`
+    );
+  }
+
+  return resolvedPath;
 }
 
 type SeqMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

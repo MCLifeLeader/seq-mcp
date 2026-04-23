@@ -75,7 +75,7 @@ export class SeqResponseTooLargeError extends Error {
 
 export class SeqClient {
   private readonly apiBase: URL;
-  private readonly apiOrigin: string;
+  private readonly rootBase: URL;
   private readonly apiBasePath: string;
   private readonly apiKey: string;
   private readonly timeoutMs: number;
@@ -84,8 +84,17 @@ export class SeqClient {
 
   public constructor(config: ServerConfig) {
     this.apiBase = new URL(config.seqUrl);
-    this.apiOrigin = this.apiBase.origin;
     this.apiBasePath = this.apiBase.pathname.replace(/\/+$/, "");
+    this.rootBase = new URL(this.apiBase.toString());
+
+    if (this.apiBasePath.endsWith("/api")) {
+      const rootPath = this.apiBasePath.slice(0, -4);
+      this.rootBase.pathname = rootPath === "" ? "/" : `${rootPath}/`;
+    } else {
+      this.rootBase.pathname =
+        this.apiBasePath === "" ? "/" : `${this.apiBasePath}/`;
+    }
+
     this.apiKey = config.seqApiKey;
     this.timeoutMs = config.seqTimeoutMs;
     this.maxRequestBytes = config.seqMaxRequestBytes;
@@ -97,11 +106,11 @@ export class SeqClient {
   }
 
   public getHealthUrl(): string {
-    return new URL("/health", `${this.apiOrigin}/`).toString();
+    return new URL("health", this.rootBase).toString();
   }
 
   public async getHealth(): Promise<unknown> {
-    return this.sendRequest(new URL("/health", `${this.apiOrigin}/`), {
+    return this.sendRequest(new URL("health", this.rootBase), {
       method: "GET"
     });
   }
@@ -167,6 +176,7 @@ export class SeqClient {
           Number.isFinite(parsedContentLength) &&
           parsedContentLength > this.maxResponseBytes
         ) {
+          await response.body?.cancel().catch(() => undefined);
           throw new SeqResponseTooLargeError(
             endpoint.pathname,
             parsedContentLength,
@@ -219,13 +229,25 @@ export class SeqClient {
   }
 
   private resolveEndpoint(path: string): URL {
-    if (path.startsWith("/")) {
-      return new URL(path, this.apiOrigin);
+    let normalizedPath = path.replace(/^\/+/, "");
+
+    if (normalizedPath === "") {
+      return new URL(this.apiBase.toString());
     }
 
-    let normalizedPath = path.replace(/^\/+/, "");
+    if (
+      this.apiBasePath.endsWith("/api") &&
+      !/^api(?:\/|$)/i.test(normalizedPath)
+    ) {
+      return new URL(normalizedPath, this.rootBase);
+    }
+
     if (this.apiBasePath.endsWith("/api")) {
       normalizedPath = normalizedPath.replace(/^api(?:\/|$)/i, "");
+
+       if (normalizedPath === "") {
+        return new URL(this.apiBase.toString());
+      }
     }
 
     return new URL(

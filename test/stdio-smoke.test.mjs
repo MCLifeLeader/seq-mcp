@@ -259,6 +259,95 @@ test("stdio MCP server initializes and answers seq_connection_test", async () =>
   }
 });
 
+test("seq_api_request reports missing path params as a validation error", async () => {
+  const fakeSeq = await startFakeSeqServer();
+
+  try {
+    await withClient(
+      {
+        SEQ_URL: fakeSeq.baseUrl,
+        SEQ_API_KEY: "test-api-key"
+      },
+      async (client) => {
+        const result = await client.callTool({
+          name: "seq_api_request",
+          arguments: {
+            method: "GET",
+            path: "api/events/{id}"
+          }
+        });
+
+        assert.equal(result.isError, true);
+
+        const payload = JSON.parse(result.content[0].text);
+        assert.equal(payload.error, "Invalid Seq API request.");
+        assert.equal(payload.endpoint, "api/events/{id}");
+        assert.match(payload.detail, /Missing path parameter 'id'/);
+      }
+    );
+  } finally {
+    await fakeSeq.close();
+  }
+});
+
+test("SeqClient resolves root routes against the Seq subpath", async () => {
+  const requests = [];
+  const server = http.createServer((request, response) => {
+    const url = new URL(request.url ?? "/", "http://127.0.0.1");
+    requests.push(url.pathname);
+
+    if (request.headers["x-seq-apikey"] !== "test-api-key") {
+      response.writeHead(401, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: "unauthorized" }));
+      return;
+    }
+
+    if (url.pathname === "/seq/health" || url.pathname === "/seq/health/cluster") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ ok: true, path: url.pathname }));
+      return;
+    }
+
+    if (url.pathname === "/seq/api" || url.pathname === "/seq/api/") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ Links: {} }));
+      return;
+    }
+
+    response.writeHead(404, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ error: "not found", path: url.pathname }));
+  });
+
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+
+  const address = server.address();
+  assert(address && typeof address === "object");
+
+  try {
+    const { SeqClient } = await import("../dist/seq-client.js");
+    const client = new SeqClient({
+      seqUrl: `http://127.0.0.1:${address.port}/seq/api`,
+      seqApiKey: "test-api-key",
+      seqTimeoutMs: 5_000,
+      seqMaxRequestBytes: 262_144,
+      seqMaxResponseBytes: 1_048_576
+    });
+
+    const health = await client.getHealth();
+    const cluster = await client.request({ method: "GET", path: "health/cluster" });
+    const api = await client.request({ method: "GET", path: "api" });
+
+    assert.deepEqual(health, { ok: true, path: "/seq/health" });
+    assert.deepEqual(cluster, { ok: true, path: "/seq/health/cluster" });
+    assert.deepEqual(api, { Links: {} });
+    assert.deepEqual(requests, ["/seq/health", "/seq/health/cluster", "/seq/api"]);
+  } finally {
+    server.close();
+    await once(server, "close");
+  }
+});
+
 test("stdio MCP server resolves health from the Seq host root when SEQ_URL includes /api", async () => {
   const fakeSeq = await startFakeSeqServer();
 
@@ -354,7 +443,7 @@ test("ownership-scoped starter list tools send shared and personal filters", asy
         for (const result of [signalResult, dashboardResult, alertResult]) {
           assert.equal(result.isError, undefined);
           const payload = JSON.parse(result.content[0].text);
-          assert.deepEqual(payload.response.scope, {
+          assert.deepEqual(payload.scope, {
             shared: "true",
             personal: "true"
           });

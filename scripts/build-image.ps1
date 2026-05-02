@@ -99,7 +99,7 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 $buildDate = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
 
 Stop-RunningContainersForImage $localImage
-if ($fullImage -ne $localImage) {
+if (-not [string]::IsNullOrWhiteSpace($fullImage) -and $fullImage -ne $localImage) {
     Stop-RunningContainersForImage $fullImage
 }
 if (-not [string]::IsNullOrWhiteSpace($latestImage) -and $latestImage -ne $localImage -and $latestImage -ne $fullImage) {

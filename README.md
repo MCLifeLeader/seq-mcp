@@ -180,6 +180,12 @@ Script intent:
 - `./build-docker-image.ps1`: builds the Docker image and adds it to your local Docker images.
 - `./scripts/run-mcp-compose.sh`: runs the MCP server through Docker Compose for stdio use; it can build if needed, but its primary job is to run the container.
 
+Default build behavior:
+
+- When you run the build script without `--tag` or `-Tag`, it builds the named image `mcp/seq-otel`, which Docker treats as `mcp/seq-otel:latest`.
+- If you want a different reusable image such as `mcp/seq-otel:v0.3.1`, pass an explicit tag.
+- `--latest-tag` or `-LatestTag` remains optional and adds an additional tag alongside the primary image tag.
+
 Build and push to registry (pullable by other Docker hosts):
 
 PowerShell:

@@ -2,42 +2,42 @@ name: seq-otel
 image: mcp/seq-otel
 type: server
 meta:
-  category: observability
-  tags:
-    - seq
-    - datalust
-    - opentelemetry
-    - logs
+    category: observability
+    tags:
+        - seq
+        - datalust
+        - opentelemetry
+        - logs
 about:
-  title: Seq OTel MCP Server
-  description: MCP server for querying and operating on Datalust Seq telemetry and server APIs.
-  icon: https://raw.githubusercontent.com/MCLifeLeader/seq-mcp/main/assets/seq-otel-icon.svg
+    title: Seq OTel MCP Server
+    description: MCP server for querying and operating on Datalust Seq telemetry and server APIs.
+    icon: https://raw.githubusercontent.com/MCLifeLeader/seq-mcp/main/assets/seq-otel-icon.svg
 source:
-  type: github
-  url: https://github.com/MCLifeLeader/seq-mcp
-  ref: main
-  path: /
+    type: github
+    url: https://github.com/MCLifeLeader/seq-mcp
+    ref: main
+    path: /
 config:
-  transport: stdio
-  command:
-    type: docker
-    configSchema:
-      type: object
-      properties:
-        seq_url:
-          type: string
-          description: Seq base URL (recommended) or API URL (for example https://seq.example.com).
-      required:
-        - seq_url
-  description: Configure connection settings for the target Seq instance.
-  env:
-    - name: SEQ_URL
-      description: URL for the target Seq server root (recommended) or /api endpoint.
-      example: https://seq.example.com
-      value: "{{seq-otel.seq_url}}"
-  secrets:
-    - name: seq-otel.seq_api_key
-      env: SEQ_API_KEY
-      description: Seq API key with required permissions for selected operations.
-      example: <SEQ_API_KEY>
-      required: true
+    transport: stdio
+    command:
+        type: docker
+        configSchema:
+            type: object
+            properties:
+                seq_url:
+                    type: string
+                    description: Seq base URL (recommended) or API URL (for example https://seq.example.com).
+            required:
+                - seq_url
+    description: Configure connection settings for the target Seq instance.
+    env:
+        - name: SEQ_URL
+          description: URL for the target Seq server root (recommended) or /api endpoint.
+          example: https://seq.example.com
+          value: "{{seq-otel.seq_url}}"
+    secrets:
+        - name: seq-otel.seq_api_key
+          env: SEQ_API_KEY
+          description: Seq API key with required permissions for selected operations.
+          example: <SEQ_API_KEY>
+          required: true

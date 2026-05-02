@@ -25,36 +25,36 @@ When Seq adds, removes, or changes endpoints/permissions, review and update:
 ## Standard Update Workflow
 
 1. Confirm local configuration.
-   - Ensure `.env` includes `SEQ_URL` and `SEQ_API_KEY`.
-   - Prefer `SEQ_URL` at host root (for example `http://localhost:10150`); `/api` is also supported.
+    - Ensure `.env` includes `SEQ_URL` and `SEQ_API_KEY`.
+    - Prefer `SEQ_URL` at host root (for example `http://localhost:10150`); `/api` is also supported.
 
 2. Re-scan live API links from your Seq instance.
-   - Query `GET /api` and each `*/resources` link.
-   - Capture all `name -> route` links.
+    - Query `GET /api` and each `*/resources` link.
+    - Capture all `name -> route` links.
 
 3. Re-scan the official endpoint table.
-   - Parse `https://docs.datalust.co/docs/server-http-api`.
-   - Extract `Path`, `HTTP method`, `Permission demand`, and notes.
+    - Parse `https://docs.datalust.co/docs/server-http-api`.
+    - Extract `Path`, `HTTP method`, `Permission demand`, and notes.
 
 4. Regenerate artifacts.
-   - Refresh `src/route-catalog.ts` from official route rows.
-   - Refresh `docs/api-map.md` from live + official data.
+    - Refresh `src/route-catalog.ts` from official route rows.
+    - Refresh `docs/api-map.md` from live + official data.
 
 5. Reconcile behavior changes.
-   - Identify added, removed, or changed route+verb entries.
-   - Update starter aliases in `src/index.ts` for critical workflows.
-   - Verify permission handling remains clear for `401/403`.
+    - Identify added, removed, or changed route+verb entries.
+    - Update starter aliases in `src/index.ts` for critical workflows.
+    - Verify permission handling remains clear for `401/403`.
 
 6. Validate build integrity.
-   - `npm run check`
-   - `npm run build`
+    - `npm run check`
+    - `npm run build`
 
 7. Smoke-test key tools.
-   - `seq_connection_test`
-   - `seq_starter_overview`
-   - `seq_api_catalog`
-   - `seq_api_live_links`
-   - One `seq_api_request` call against a known route
+    - `seq_connection_test`
+    - `seq_starter_overview`
+    - `seq_api_catalog`
+    - `seq_api_live_links`
+    - One `seq_api_request` call against a known route
 
 ## Change Classification Rules
 

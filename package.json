@@ -9,10 +9,15 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "check": "tsc --noEmit -p tsconfig.json",
-    "test": "npm run build && node --test test"
+    "format": "prettier --check \"**/*.{json,md,ts,js,mjs,yml,yaml}\"",
+    "format:write": "prettier --write \"**/*.{json,md,ts,js,mjs,yml,yaml}\"",
+    "validate:live-contract": "tsx src/live-contract-check.ts",
+    "test": "npm run build && node --test"
   },
+  "packageManager": "npm@11.13.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.15.0 <25",
+    "npm": ">=11.13.0 <12"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
@@ -20,6 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
+    "prettier": "^3.5.3",
     "tsx": "^4.19.2",
     "typescript": "^5.8.2"
   }

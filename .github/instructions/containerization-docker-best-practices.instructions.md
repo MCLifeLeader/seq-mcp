@@ -1,6 +1,6 @@
 ---
-applyTo: '**/Dockerfile,**/Dockerfile.*,**/*.dockerfile,**/docker-compose*.yml,**/docker-compose*.yaml,**/compose*.yml,**/compose*.yaml'
-description: 'Comprehensive best practices for creating optimized, secure, and efficient Docker images and managing containers. Covers multi-stage builds, image layer optimization, security scanning, and runtime best practices.'
+applyTo: "**/Dockerfile,**/Dockerfile.*,**/*.dockerfile,**/docker-compose*.yml,**/docker-compose*.yaml,**/compose*.yml,**/compose*.yaml"
+description: "Comprehensive best practices for creating optimized, secure, and efficient Docker images and managing containers. Covers multi-stage builds, image layer optimization, security scanning, and runtime best practices."
 ---
 
 # Containerization & Docker Best Practices
@@ -14,11 +14,13 @@ As GitHub Copilot, you are an expert in containerization with deep knowledge of 
 These instructions apply to both Dockerfile and Docker Compose configurations. The following file naming patterns are supported:
 
 **Dockerfiles:**
+
 - `Dockerfile` - Standard Dockerfile naming
 - `Dockerfile.*` - Dockerfiles with suffixes (e.g., `Dockerfile.dev`, `Dockerfile.prod`)
 - `*.dockerfile` - Files with .dockerfile extension
 
 **Docker Compose Files:**
+
 - `docker-compose.yml` / `docker-compose.yaml` - Legacy Docker Compose V1 naming convention
 - `compose.yml` / `compose.yaml` - Docker Compose V2 standalone file naming convention
 
@@ -27,6 +29,7 @@ Both `docker-compose*` and `compose*` naming patterns are supported to ensure co
 ## Core Principles of Containerization
 
 ### **1. Immutability**
+
 - **Principle:** Once a container image is built, it should not change. Any changes should result in a new image.
 - **Deeper Dive:**
     - **Reproducible Builds:** Every build should produce identical results given the same inputs. This requires deterministic build processes, pinned dependency versions, and controlled build environments.
@@ -41,6 +44,7 @@ Both `docker-compose*` and `compose*` naming patterns are supported to ensure co
 - **Pro Tip:** This enables easy rollbacks and consistent environments across dev, staging, and production. Immutable images are the foundation of reliable deployments.
 
 ### **2. Portability**
+
 - **Principle:** Containers should run consistently across different environments (local, cloud, on-premise) without modification.
 - **Deeper Dive:**
     - **Environment Agnostic Design:** Design applications to be environment-agnostic by externalizing all environment-specific configurations.
@@ -55,6 +59,7 @@ Both `docker-compose*` and `compose*` naming patterns are supported to ensure co
 - **Pro Tip:** Portability is achieved through careful design and testing across target environments, not by accident.
 
 ### **3. Isolation**
+
 - **Principle:** Containers provide process and resource isolation, preventing interference between applications.
 - **Deeper Dive:**
     - **Process Isolation:** Each container runs in its own process namespace, preventing one container from seeing or affecting processes in other containers.
@@ -69,6 +74,7 @@ Both `docker-compose*` and `compose*` naming patterns are supported to ensure co
 - **Pro Tip:** Proper isolation is the foundation of container security and reliability. Don't break isolation for convenience.
 
 ### **4. Efficiency & Small Images**
+
 - **Principle:** Smaller images are faster to build, push, pull, and consume fewer resources.
 - **Deeper Dive:**
     - **Build Time Optimization:** Smaller images build faster, reducing CI/CD pipeline duration and developer feedback time.
@@ -85,6 +91,7 @@ Both `docker-compose*` and `compose*` naming patterns are supported to ensure co
 ## Dockerfile Best Practices
 
 ### **1. Multi-Stage Builds (The Golden Rule)**
+
 - **Principle:** Use multiple `FROM` instructions in a single Dockerfile to separate build-time dependencies from runtime dependencies.
 - **Deeper Dive:**
     - **Build Stage Optimization:** The build stage can include compilers, build tools, and development dependencies without affecting the final image size.
@@ -98,6 +105,7 @@ Both `docker-compose*` and `compose*` naming patterns are supported to ensure co
     - Advise on using different base images for build and runtime stages when appropriate.
 - **Benefit:** Significantly reduces final image size and attack surface.
 - **Example (Advanced Multi-Stage with Testing):**
+
 ```dockerfile
 # Stage 1: Dependencies
 FROM node:18-alpine AS deps
@@ -130,6 +138,7 @@ CMD ["node", "dist/main.js"]
 ```
 
 ### **2. Choose the Right Base Image**
+
 - **Principle:** Select official, stable, and minimal base images that meet your application's requirements.
 - **Deeper Dive:**
     - **Official Images:** Prefer official images from Docker Hub or cloud providers as they are regularly updated and maintained.
@@ -144,6 +153,7 @@ CMD ["node", "dist/main.js"]
 - **Pro Tip:** Smaller base images mean fewer vulnerabilities and faster downloads. Always start with the smallest image that meets your needs.
 
 ### **3. Optimize Image Layers**
+
 - **Principle:** Each instruction in a Dockerfile creates a new layer. Leverage caching effectively to optimize build times and image size.
 - **Deeper Dive:**
     - **Layer Caching:** Docker caches layers and reuses them if the instruction hasn't changed. Order instructions from least to most frequently changing.
@@ -151,11 +161,12 @@ CMD ["node", "dist/main.js"]
     - **Cache Invalidation:** Changes to any layer invalidate all subsequent layers. Place frequently changing content (like source code) near the end.
     - **Multi-line Commands:** Use `\` for multi-line commands to improve readability while maintaining layer efficiency.
 - **Guidance for Copilot:**
-    - Place frequently changing instructions (e.g., `COPY . .`) *after* less frequently changing ones (e.g., `RUN npm ci`).
+    - Place frequently changing instructions (e.g., `COPY . .`) _after_ less frequently changing ones (e.g., `RUN npm ci`).
     - Combine `RUN` commands where possible to minimize layers (e.g., `RUN apt-get update && apt-get install -y ...`).
     - Clean up temporary files in the same `RUN` command (`rm -rf /var/lib/apt/lists/*`).
     - Use multi-line commands with `\` for complex operations to maintain readability.
 - **Example (Advanced Layer Optimization):**
+
 ```dockerfile
 # BAD: Multiple layers, inefficient caching
 FROM ubuntu:20.04
@@ -175,6 +186,7 @@ RUN apt-get update && \
 ```
 
 ### **4. Use `.dockerignore` Effectively**
+
 - **Principle:** Exclude unnecessary files from the build context to speed up builds and reduce image size.
 - **Deeper Dive:**
     - **Build Context Size:** The build context is sent to the Docker daemon. Large contexts slow down builds and consume resources.
@@ -187,6 +199,7 @@ RUN apt-get update && \
     - Recommend reviewing the `.dockerignore` file regularly as the project evolves.
     - Suggest using patterns that match your project structure and exclude unnecessary files.
 - **Example (Comprehensive .dockerignore):**
+
 ```dockerignore
 # Version control
 .git*
@@ -230,6 +243,7 @@ __tests__/
 ```
 
 ### **5. Minimize `COPY` Instructions**
+
 - **Principle:** Copy only what is necessary, when it is necessary, to optimize layer caching and reduce image size.
 - **Deeper Dive:**
     - **Selective Copying:** Copy specific files or directories rather than entire project directories when possible.
@@ -242,6 +256,7 @@ __tests__/
     - Recommend copying only the necessary files for each stage in multi-stage builds.
     - Suggest using `.dockerignore` to exclude files that shouldn't be copied.
 - **Example (Optimized COPY Strategy):**
+
 ```dockerfile
 # Copy dependency files first (for better caching)
 COPY package*.json ./
@@ -258,6 +273,7 @@ COPY config/ ./config/
 ```
 
 ### **6. Define Default User and Port**
+
 - **Principle:** Run containers with a non-root user for security and expose expected ports for clarity.
 - **Deeper Dive:**
     - **Security Benefits:** Running as non-root reduces the impact of security vulnerabilities and follows the principle of least privilege.
@@ -270,6 +286,7 @@ COPY config/ ./config/
     - Create a dedicated user in the Dockerfile rather than using an existing one.
     - Ensure proper file permissions for the non-root user.
 - **Example (Secure User Setup):**
+
 ```dockerfile
 # Create a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -288,6 +305,7 @@ CMD ["node", "dist/main.js"]
 ```
 
 ### **7. Use `CMD` and `ENTRYPOINT` Correctly**
+
 - **Principle:** Define the primary command that runs when the container starts, with clear separation between the executable and its arguments.
 - **Deeper Dive:**
     - **`ENTRYPOINT`:** Defines the executable that will always run. Makes the container behave like a specific application.
@@ -302,6 +320,7 @@ CMD ["node", "dist/main.js"]
 - **Pro Tip:** `ENTRYPOINT` makes the image behave like an executable, while `CMD` provides default arguments. This combination provides flexibility and clarity.
 
 ### **8. Environment Variables for Configuration**
+
 - **Principle:** Externalize configuration using environment variables or mounted configuration files to make images portable and configurable.
 - **Deeper Dive:**
     - **Runtime Configuration:** Use environment variables for configuration that varies between environments (databases, API endpoints, feature flags).
@@ -314,6 +333,7 @@ CMD ["node", "dist/main.js"]
     - Suggest using configuration management tools or external configuration services for complex applications.
     - Advise on using secrets management solutions for sensitive configuration.
 - **Example (Environment Variable Best Practices):**
+
 ```dockerfile
 # Set default values
 ENV NODE_ENV=production
@@ -331,6 +351,7 @@ CMD ["node", "dist/main.js"]
 ## Container Security Best Practices
 
 ### **1. Non-Root User**
+
 - **Principle:** Running containers as `root` is a significant security risk and should be avoided in production.
 - **Deeper Dive:**
     - **Privilege Escalation:** Root containers can potentially escape to the host system if there are vulnerabilities in the container runtime.
@@ -343,6 +364,7 @@ CMD ["node", "dist/main.js"]
     - Use `USER` directive early in the Dockerfile to ensure subsequent operations run as the non-root user.
     - Consider using user namespaces or other security features when available.
 - **Example (Secure User Creation):**
+
 ```dockerfile
 # Create a dedicated user and group
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -358,6 +380,7 @@ VOLUME ["/app/data"]
 ```
 
 ### **2. Minimal Base Images**
+
 - **Principle:** Smaller images mean fewer packages, thus fewer vulnerabilities and a reduced attack surface.
 - **Deeper Dive:**
     - **Attack Surface Reduction:** Each package in the base image represents a potential vulnerability. Fewer packages mean fewer potential attack vectors.
@@ -370,6 +393,7 @@ VOLUME ["/app/data"]
     - Consider using language-specific minimal images (e.g., `openjdk:17-jre-slim` instead of `openjdk:17`).
     - Stay updated with the latest minimal base image versions for security patches.
 - **Example (Minimal Base Image Selection):**
+
 ```dockerfile
 # BAD: Full distribution with many unnecessary packages
 FROM ubuntu:20.04
@@ -382,6 +406,7 @@ FROM gcr.io/distroless/nodejs18-debian11
 ```
 
 ### **3. Static Analysis Security Testing (SAST) for Dockerfiles**
+
 - **Principle:** Scan Dockerfiles for security misconfigurations and known vulnerabilities before building images.
 - **Deeper Dive:**
     - **Dockerfile Linting:** Use tools like `hadolint` to check for Dockerfile best practices and security issues.
@@ -394,19 +419,21 @@ FROM gcr.io/distroless/nodejs18-debian11
     - Recommend failing builds if critical vulnerabilities are found in base images.
     - Advise on regular scanning of images in registries for newly discovered vulnerabilities.
 - **Example (Security Scanning in CI):**
+
 ```yaml
 # GitHub Actions example
 - name: Run Hadolint
   run: |
-    docker run --rm -i hadolint/hadolint < Dockerfile
+      docker run --rm -i hadolint/hadolint < Dockerfile
 
 - name: Scan image for vulnerabilities
   run: |
-    docker build -t myapp .
-    trivy image myapp
+      docker build -t myapp .
+      trivy image myapp
 ```
 
 ### **4. Image Signing & Verification**
+
 - **Principle:** Ensure images haven't been tampered with and come from trusted sources.
 - **Deeper Dive:**
     - **Cryptographic Signing:** Use digital signatures to verify the authenticity and integrity of container images.
@@ -419,6 +446,7 @@ FROM gcr.io/distroless/nodejs18-debian11
     - Advise on setting up trust policies that prevent running unsigned images.
     - Consider using newer tools like Cosign for more advanced signing features.
 - **Example (Image Signing with Cosign):**
+
 ```bash
 # Sign an image
 cosign sign -key cosign.key myregistry.com/myapp:v1.0.0
@@ -428,6 +456,7 @@ cosign verify -key cosign.pub myregistry.com/myapp:v1.0.0
 ```
 
 ### **5. Limit Capabilities & Read-Only Filesystems**
+
 - **Principle:** Restrict container capabilities and ensure read-only access where possible to minimize the attack surface.
 - **Deeper Dive:**
     - **Linux Capabilities:** Drop unnecessary Linux capabilities that containers don't need to function.
@@ -440,6 +469,7 @@ cosign verify -key cosign.pub myregistry.com/myapp:v1.0.0
     - Suggest using security profiles and policies when available in your container runtime.
     - Advise on implementing defense in depth with multiple security controls.
 - **Example (Capability Restrictions):**
+
 ```dockerfile
 # Drop unnecessary capabilities
 RUN setcap -r /usr/bin/node
@@ -449,6 +479,7 @@ RUN setcap -r /usr/bin/node
 ```
 
 ### **6. No Sensitive Data in Image Layers**
+
 - **Principle:** Never include secrets, private keys, or credentials in image layers as they become part of the image history.
 - **Deeper Dive:**
     - **Layer History:** All files added to an image are stored in the image history and can be extracted even if deleted in later layers.
@@ -462,6 +493,7 @@ RUN setcap -r /usr/bin/node
     - Suggest using multi-stage builds to avoid including build-time secrets in the final image.
 - **Anti-pattern:** `ADD secrets.txt /app/secrets.txt`
 - **Example (Secure Secret Management):**
+
 ```dockerfile
 # BAD: Never do this
 # COPY secrets.txt /app/secrets.txt
@@ -472,6 +504,7 @@ CMD ["node", "dist/main.js"]
 ```
 
 ### **7. Health Checks (Liveness & Readiness Probes)**
+
 - **Principle:** Ensure containers are running and ready to serve traffic by implementing proper health checks.
 - **Deeper Dive:**
     - **Liveness Probes:** Check if the application is alive and responding to requests. Restart the container if it fails.
@@ -484,6 +517,7 @@ CMD ["node", "dist/main.js"]
     - Use appropriate intervals and timeouts for health checks to balance responsiveness with overhead.
     - Consider implementing both liveness and readiness checks for complex applications.
 - **Example (Comprehensive Health Check):**
+
 ```dockerfile
 # Health check that verifies the application is responding
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
@@ -497,6 +531,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ## Container Runtime & Orchestration Best Practices
 
 ### **1. Resource Limits**
+
 - **Principle:** Limit CPU and memory to prevent resource exhaustion and noisy neighbors.
 - **Deeper Dive:**
     - **CPU Limits:** Set CPU limits to prevent containers from consuming excessive CPU time and affecting other containers.
@@ -509,21 +544,23 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     - Recommend setting both requests and limits for predictable resource allocation.
     - Advise on using resource quotas in Kubernetes to manage cluster-wide resource usage.
 - **Example (Docker Compose Resource Limits):**
+
 ```yaml
 services:
-  app:
-    image: myapp:latest
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
+    app:
+        image: myapp:latest
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: 512M
+                reservations:
+                    cpus: "0.25"
+                    memory: 256M
 ```
 
 ### **2. Logging & Monitoring**
+
 - **Principle:** Collect and centralize container logs and metrics for observability and troubleshooting.
 - **Deeper Dive:**
     - **Structured Logging:** Use structured logging (JSON) for better parsing and analysis.
@@ -536,16 +573,18 @@ services:
     - Recommend implementing structured logging in applications for better observability.
     - Suggest setting up log rotation and retention policies to manage storage costs.
 - **Example (Structured Logging):**
+
 ```javascript
 // Application logging
-const winston = require('winston');
+const winston = require("winston");
 const logger = winston.createLogger({
-  format: winston.format.json(),
-  transports: [new winston.transports.Console()]
+    format: winston.format.json(),
+    transports: [new winston.transports.Console()],
 });
 ```
 
 ### **3. Persistent Storage**
+
 - **Principle:** For stateful applications, use persistent volumes to maintain data across container restarts.
 - **Deeper Dive:**
     - **Volume Types:** Use named volumes, bind mounts, or cloud storage depending on your requirements.
@@ -558,20 +597,22 @@ const logger = winston.createLogger({
     - Recommend implementing backup and disaster recovery procedures for persistent data.
     - Suggest using cloud-native storage solutions for better scalability and reliability.
 - **Example (Docker Volume Usage):**
+
 ```yaml
 services:
-  database:
-    image: postgres:13
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    database:
+        image: postgres:13
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        environment:
+            POSTGRES_PASSWORD_FILE: /run/secrets/db_password
 
 volumes:
-  postgres_data:
+    postgres_data:
 ```
 
 ### **4. Networking**
+
 - **Principle:** Use defined container networks for secure and isolated communication between containers.
 - **Deeper Dive:**
     - **Network Isolation:** Create separate networks for different application tiers or environments.
@@ -584,26 +625,28 @@ volumes:
     - Use service discovery mechanisms provided by your orchestration platform.
     - Implement proper network segmentation for multi-tier applications.
 - **Example (Docker Network Configuration):**
+
 ```yaml
 services:
-  web:
-    image: nginx
-    networks:
-      - frontend
-      - backend
+    web:
+        image: nginx
+        networks:
+            - frontend
+            - backend
 
-  api:
-    image: myapi
-    networks:
-      - backend
+    api:
+        image: myapi
+        networks:
+            - backend
 
 networks:
-  frontend:
-  backend:
-    internal: true
+    frontend:
+    backend:
+        internal: true
 ```
 
 ### **5. Orchestration (Kubernetes, Docker Swarm)**
+
 - **Principle:** Use an orchestrator for managing containerized applications at scale.
 - **Deeper Dive:**
     - **Scaling:** Automatically scale applications based on demand and resource usage.
@@ -616,31 +659,32 @@ networks:
     - Use rolling update strategies for zero-downtime deployments.
     - Implement proper resource management and monitoring in orchestrated environments.
 - **Example (Kubernetes Deployment):**
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp
+    name: myapp
 spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: myapp
-  template:
-    metadata:
-      labels:
-        app: myapp
-    spec:
-      containers:
-      - name: myapp
-        image: myapp:latest
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "250m"
-          limits:
-            memory: "128Mi"
-            cpu: "500m"
+    replicas: 3
+    selector:
+        matchLabels:
+            app: myapp
+    template:
+        metadata:
+            labels:
+                app: myapp
+        spec:
+            containers:
+                - name: myapp
+                  image: myapp:latest
+                  resources:
+                      requests:
+                          memory: "64Mi"
+                          cpu: "250m"
+                      limits:
+                          memory: "128Mi"
+                          cpu: "500m"
 ```
 
 ## Dockerfile Review Checklist
@@ -661,28 +705,33 @@ spec:
 ## Troubleshooting Docker Builds & Runtime
 
 ### **1. Large Image Size**
+
 - Review layers for unnecessary files. Use `docker history <image>`.
 - Implement multi-stage builds.
 - Use a smaller base image.
 - Optimize `RUN` commands and clean up temporary files.
 
 ### **2. Slow Builds**
+
 - Leverage build cache by ordering instructions from least to most frequent change.
 - Use `.dockerignore` to exclude irrelevant files.
 - Use `docker build --no-cache` for troubleshooting cache issues.
 
 ### **3. Container Not Starting/Crashing**
+
 - Check `CMD` and `ENTRYPOINT` instructions.
 - Review container logs (`docker logs <container_id>`).
 - Ensure all dependencies are present in the final image.
 - Check resource limits.
 
 ### **4. Permissions Issues Inside Container**
+
 - Verify file/directory permissions in the image.
 - Ensure the `USER` has necessary permissions for operations.
 - Check mounted volumes permissions.
 
 ### **5. Network Connectivity Issues**
+
 - Verify exposed ports (`EXPOSE`) and published ports (`-p` in `docker run`).
 - Check container network configuration.
 - Review firewall rules.
@@ -693,4 +742,4 @@ Effective containerization with Docker is fundamental to modern DevOps. By follo
 
 ---
 
-<!-- End of Containerization & Docker Best Practices Instructions --> 
+<!-- End of Containerization & Docker Best Practices Instructions -->

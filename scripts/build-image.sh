@@ -3,7 +3,7 @@ set -euo pipefail
 
 IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otel}"
 TAG="${TAG:-}"
-LATEST_TAG="${LATEST_TAG-latest}"
+LATEST_TAG="${LATEST_TAG:-}"
 REGISTRY="${REGISTRY:-}"
 PUSH="${PUSH:-false}"
 SAVE_TAR="${SAVE_TAR:-}"
@@ -26,8 +26,8 @@ Usage: scripts/build-image.sh [options]
 
 Options:
   --image-name <name>   Image name (default: mcp/seq-otel)
-  --tag <tag>           Image tag (optional)
-  --latest-tag <tag>    Additional tag to apply (default: latest, use empty string to disable)
+  --tag <tag>           Image tag (optional; default Docker behavior is latest)
+  --latest-tag <tag>    Additional tag to apply (optional)
   --registry <registry> Optional registry prefix (example: ghcr.io/my-org)
   --push                Push after build
   --save-tar <path>     Save image archive to tar file
@@ -111,8 +111,10 @@ fi
 
 BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-stop_running_containers_for_image "$LOCAL_IMAGE"
-if [[ "$FULL_IMAGE" != "$LOCAL_IMAGE" ]]; then
+if [[ -n "$LOCAL_IMAGE" ]]; then
+  stop_running_containers_for_image "$LOCAL_IMAGE"
+fi
+if [[ -n "$FULL_IMAGE" && "$FULL_IMAGE" != "$LOCAL_IMAGE" ]]; then
   stop_running_containers_for_image "$FULL_IMAGE"
 fi
 if [[ -n "$LATEST_IMAGE" && "$LATEST_IMAGE" != "$LOCAL_IMAGE" && "$LATEST_IMAGE" != "$FULL_IMAGE" ]]; then
@@ -124,9 +126,10 @@ BUILD_ARGS=(
   build
   --build-arg IMAGE_VERSION="${IMAGE_VERSION}" \
   --build-arg VCS_REF="${VCS_REF}" \
-  --build-arg BUILD_DATE="${BUILD_DATE}" \
-  -t "${FULL_IMAGE}"
+  --build-arg BUILD_DATE="${BUILD_DATE}"
 )
+
+BUILD_ARGS+=(-t "${FULL_IMAGE}")
 
 if [[ -n "$LATEST_IMAGE" && "$LATEST_IMAGE" != "$FULL_IMAGE" ]]; then
   BUILD_ARGS+=(-t "${LATEST_IMAGE}")

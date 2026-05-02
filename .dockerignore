@@ -5,3 +5,15 @@ dist
 .vscode
 .devcontainer
 npm-debug.log*
+.env*
+.github
+AGENTS.md
+CODEOWNERS
+CONTRIBUTING.md
+LICENSE
+README.md
+assets
+catalog
+docs
+scripts
+test

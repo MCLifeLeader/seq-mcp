@@ -107,7 +107,7 @@ Health check behavior:
 
 ## Local Run (Node)
 
-Node.js requirement: LTS (see `.nvmrc`).
+Node.js requirement: v24.15.0 LTS with npm 11.13.0 (see `.nvmrc` and `package.json`).
 
 ```bash
 npm install

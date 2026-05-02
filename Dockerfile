@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:lts-alpine AS build
+FROM node:24.15.0-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -10,7 +10,7 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:lts-alpine AS runtime
+FROM node:24.15.0-alpine AS runtime
 WORKDIR /app
 
 ARG IMAGE_VERSION=none

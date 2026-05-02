@@ -132,6 +132,17 @@ async function startFakeSeqServer() {
             return;
         }
 
+        if (url.pathname === "/api/events") {
+            response.writeHead(200, { "Content-Type": "application/json" });
+            response.end(
+                JSON.stringify({
+                    query: Object.fromEntries(url.searchParams.entries()),
+                    Events: [],
+                }),
+            );
+            return;
+        }
+
         if (url.pathname === "/api/data" && request.method === "POST") {
             response.writeHead(200, { "Content-Type": "application/json" });
             response.end(
@@ -564,6 +575,115 @@ test("seq_api_request only allows official catalog routes", async () => {
     }
 });
 
+test("seq_starter_events_search expands common warning level aliases", async () => {
+    const fakeSeq = await startFakeSeqServer();
+
+    try {
+        await withClient(
+            {
+                SEQ_URL: fakeSeq.baseUrl,
+                SEQ_API_KEY: "test-api-key",
+            },
+            async (client) => {
+                const result = await client.callTool({
+                    name: "seq_starter_events_search",
+                    arguments: {
+                        filter: "@Level = 'Warning'",
+                        count: 10,
+                    },
+                });
+
+                assert.equal(result.isError, undefined);
+                const payload = JSON.parse(result.content[0].text);
+                assert.equal(
+                    payload.query.filter,
+                    "(@Level = 'Warning' or @Level = 'WARN' or @Level = 'Warn' or @Level = 'warn' or @Level = 'WRN' or @Level = 'wrn')",
+                );
+                assert.equal(fakeSeq.requests.at(-1)?.path, "/api/events");
+            },
+        );
+    } finally {
+        await fakeSeq.close();
+    }
+});
+
+test("seq_starter_events_search expands common information level aliases", async () => {
+    const fakeSeq = await startFakeSeqServer();
+
+    try {
+        await withClient(
+            {
+                SEQ_URL: fakeSeq.baseUrl,
+                SEQ_API_KEY: "test-api-key",
+            },
+            async (client) => {
+                const result = await client.callTool({
+                    name: "seq_starter_events_search",
+                    arguments: {
+                        filter: '@Level = "Info"',
+                        count: 10,
+                    },
+                });
+
+                assert.equal(result.isError, undefined);
+                const payload = JSON.parse(result.content[0].text);
+                assert.equal(
+                    payload.query.filter,
+                    "(@Level = 'Information' or @Level = 'INFO' or @Level = 'Info' or @Level = 'info' or @Level = 'INF' or @Level = 'inf')",
+                );
+            },
+        );
+    } finally {
+        await fakeSeq.close();
+    }
+});
+
+test("seq_starter_events_search expands short debug and critical level aliases", async () => {
+    const fakeSeq = await startFakeSeqServer();
+
+    try {
+        await withClient(
+            {
+                SEQ_URL: fakeSeq.baseUrl,
+                SEQ_API_KEY: "test-api-key",
+            },
+            async (client) => {
+                const debugResult = await client.callTool({
+                    name: "seq_starter_events_search",
+                    arguments: {
+                        filter: "@Level = 'dbg'",
+                        count: 10,
+                    },
+                });
+                assert.equal(debugResult.isError, undefined);
+                const debugPayload = JSON.parse(debugResult.content[0].text);
+                assert.equal(
+                    debugPayload.query.filter,
+                    "(@Level = 'Debug' or @Level = 'DEBUG' or @Level = 'debug' or @Level = 'DBG' or @Level = 'dbg' or @Level = 'DBUG' or @Level = 'dbug')",
+                );
+
+                const criticalResult = await client.callTool({
+                    name: "seq_starter_events_search",
+                    arguments: {
+                        filter: "@Level = 'crit'",
+                        count: 10,
+                    },
+                });
+                assert.equal(criticalResult.isError, undefined);
+                const criticalPayload = JSON.parse(
+                    criticalResult.content[0].text,
+                );
+                assert.equal(
+                    criticalPayload.query.filter,
+                    "(@Level = 'Fatal' or @Level = 'FATAL' or @Level = 'fatal' or @Level = 'FTL' or @Level = 'ftl' or @Level = 'Critical' or @Level = 'CRITICAL' or @Level = 'critical' or @Level = 'Crit' or @Level = 'CRIT' or @Level = 'crit')",
+                );
+            },
+        );
+    } finally {
+        await fakeSeq.close();
+    }
+});
+
 test("seq_api_request forwards cataloged POST bodies to Seq", async () => {
     const fakeSeq = await startFakeSeqServer();
 
@@ -593,6 +713,41 @@ test("seq_api_request forwards cataloged POST bodies to Seq", async () => {
                     q: "select *",
                     count: 10,
                 });
+                assert.equal(fakeSeq.requests.at(-1)?.path, "/api/data");
+            },
+        );
+    } finally {
+        await fakeSeq.close();
+    }
+});
+
+test("seq_starter_data_query sends q as a query parameter for POST", async () => {
+    const fakeSeq = await startFakeSeqServer();
+
+    try {
+        await withClient(
+            {
+                SEQ_URL: fakeSeq.baseUrl,
+                SEQ_API_KEY: "test-api-key",
+            },
+            async (client) => {
+                const result = await client.callTool({
+                    name: "seq_starter_data_query",
+                    arguments: {
+                        q: "select count(*) as Count from stream",
+                        count: 10,
+                        usePost: true,
+                    },
+                });
+
+                assert.equal(result.isError, undefined);
+                const payload = JSON.parse(result.content[0].text);
+                assert.deepEqual(payload.query, {
+                    q: "select count(*) as Count from stream",
+                    count: "10",
+                });
+                assert.deepEqual(payload.body, {});
+                assert.equal(fakeSeq.requests.at(-1)?.method, "POST");
                 assert.equal(fakeSeq.requests.at(-1)?.path, "/api/data");
             },
         );

@@ -406,6 +406,94 @@ function callOwnershipScopedListRoute(path: string): Promise<unknown> {
     });
 }
 
+const TRACE_LEVEL_ALIASES = [
+    "Trace",
+    "TRACE",
+    "trace",
+    "TRC",
+    "trc",
+    "Verbose",
+    "VERBOSE",
+    "verbose",
+    "VRB",
+    "vrb",
+];
+const DEBUG_LEVEL_ALIASES = [
+    "Debug",
+    "DEBUG",
+    "debug",
+    "DBG",
+    "dbg",
+    "DBUG",
+    "dbug",
+];
+const INFORMATION_LEVEL_ALIASES = [
+    "Information",
+    "INFO",
+    "Info",
+    "info",
+    "INF",
+    "inf",
+];
+const WARNING_LEVEL_ALIASES = ["Warning", "WARN", "Warn", "warn", "WRN", "wrn"];
+const ERROR_LEVEL_ALIASES = ["Error", "ERROR", "error", "ERR", "err"];
+const FATAL_LEVEL_ALIASES = [
+    "Fatal",
+    "FATAL",
+    "fatal",
+    "FTL",
+    "ftl",
+    "Critical",
+    "CRITICAL",
+    "critical",
+    "Crit",
+    "CRIT",
+    "crit",
+];
+
+const LOG_LEVEL_ALIASES = new Map<string, string[]>([
+    ["trace", TRACE_LEVEL_ALIASES],
+    ["trc", TRACE_LEVEL_ALIASES],
+    ["verbose", TRACE_LEVEL_ALIASES],
+    ["vrb", TRACE_LEVEL_ALIASES],
+    ["debug", DEBUG_LEVEL_ALIASES],
+    ["dbg", DEBUG_LEVEL_ALIASES],
+    ["dbug", DEBUG_LEVEL_ALIASES],
+    ["information", INFORMATION_LEVEL_ALIASES],
+    ["info", INFORMATION_LEVEL_ALIASES],
+    ["inf", INFORMATION_LEVEL_ALIASES],
+    ["warning", WARNING_LEVEL_ALIASES],
+    ["warn", WARNING_LEVEL_ALIASES],
+    ["wrn", WARNING_LEVEL_ALIASES],
+    ["error", ERROR_LEVEL_ALIASES],
+    ["err", ERROR_LEVEL_ALIASES],
+    ["fatal", FATAL_LEVEL_ALIASES],
+    ["ftl", FATAL_LEVEL_ALIASES],
+    ["critical", FATAL_LEVEL_ALIASES],
+    ["crit", FATAL_LEVEL_ALIASES],
+]);
+
+function expandCommonLevelAliases(
+    filter: string | undefined,
+): string | undefined {
+    if (filter === undefined) {
+        return undefined;
+    }
+
+    return filter.replace(
+        /@Level\s*=\s*(['"])([^'"]+)\1/gi,
+        (match, _, level) => {
+            const aliases = LOG_LEVEL_ALIASES.get(String(level).toLowerCase());
+            if (aliases === undefined) {
+                return match;
+            }
+
+            const comparisons = aliases.map((alias) => `@Level = '${alias}'`);
+            return `(${comparisons.join(" or ")})`;
+        },
+    );
+}
+
 server.tool("seq_starter_overview", {}, async () => {
     return withGracefulErrors("seq_starter_overview", async () => {
         const calls = await Promise.allSettled([
@@ -459,7 +547,7 @@ server.tool(
             async () =>
                 callCatalogRoute("GET", "api/events", {
                     query: {
-                        filter,
+                        filter: expandCommonLevelAliases(filter),
                         signal,
                         count: String(count),
                         fromDateUtc,
@@ -510,24 +598,14 @@ server.tool(
             "seq_starter_data_query",
             async () =>
                 callCatalogRoute(method, "api/data", {
-                    query: usePost
-                        ? undefined
-                        : {
-                              q,
-                              signalId,
-                              fromDateUtc,
-                              toDateUtc,
-                              count: String(count),
-                          },
-                    body: usePost
-                        ? {
-                              q,
-                              signalId,
-                              fromDateUtc,
-                              toDateUtc,
-                              count,
-                          }
-                        : undefined,
+                    query: {
+                        q,
+                        signalId,
+                        fromDateUtc,
+                        toDateUtc,
+                        count: String(count),
+                    },
+                    body: usePost ? {} : undefined,
                 }),
             route?.permission,
         );

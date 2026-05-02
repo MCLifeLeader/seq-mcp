@@ -12,7 +12,7 @@
     "format": "prettier --check \"**/*.{json,md,ts,js,mjs,yml,yaml}\"",
     "format:write": "prettier --write \"**/*.{json,md,ts,js,mjs,yml,yaml}\"",
     "validate:live-contract": "tsx src/live-contract-check.ts",
-    "test": "npm run build && node --test test/*.test.mjs"
+    "test": "npm run build && node --test"
   },
   "packageManager": "npm@11.13.0",
   "engines": {

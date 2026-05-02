@@ -131,6 +131,10 @@ BUILD_ARGS=(
 
 BUILD_ARGS+=(-t "${FULL_IMAGE}")
 
+if [[ -n "$LATEST_IMAGE" && "$LATEST_IMAGE" != "$FULL_IMAGE" ]]; then
+  BUILD_ARGS+=(-t "${LATEST_IMAGE}")
+fi
+
 BUILD_ARGS+=(.)
 
 docker "${BUILD_ARGS[@]}"

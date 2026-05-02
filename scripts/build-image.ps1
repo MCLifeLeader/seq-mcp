@@ -1,22 +1,22 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$ImageName = "mcp/seq-otel",
+    [string]$ImageName = $(if ([string]::IsNullOrWhiteSpace($env:IMAGE_NAME)) { "mcp/seq-otel" } else { $env:IMAGE_NAME }),
 
     [Parameter()]
-    [string]$Tag = "",
+    [string]$Tag = $(if ([string]::IsNullOrWhiteSpace($env:TAG)) { "" } else { $env:TAG }),
 
     [Parameter()]
-    [string]$LatestTag = "",
+    [string]$LatestTag = $(if ([string]::IsNullOrWhiteSpace($env:LATEST_TAG)) { "" } else { $env:LATEST_TAG }),
 
     [Parameter()]
-    [string]$Registry = "",
+    [string]$Registry = $(if ([string]::IsNullOrWhiteSpace($env:REGISTRY)) { "" } else { $env:REGISTRY }),
 
     [Parameter()]
     [switch]$Push,
 
     [Parameter()]
-    [string]$SaveTar = ""
+    [string]$SaveTar = $(if ([string]::IsNullOrWhiteSpace($env:SAVE_TAR)) { "" } else { $env:SAVE_TAR })
 )
 
 $ErrorActionPreference = "Stop"
@@ -97,6 +97,7 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 }
 
 $buildDate = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+$pushEnabled = $Push.IsPresent -or $env:PUSH -eq "true"
 
 Stop-RunningContainersForImage $localImage
 if (-not [string]::IsNullOrWhiteSpace($fullImage) -and $fullImage -ne $localImage) {
@@ -127,7 +128,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Docker build failed."
 }
 
-if ($Push.IsPresent) {
+if ($pushEnabled) {
     Write-Host "Pushing image: $fullImage"
     docker push $fullImage
     if ($LASTEXITCODE -ne 0) {

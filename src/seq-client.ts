@@ -76,6 +76,12 @@ export class SeqResponseTooLargeError extends Error {
     }
 }
 
+function isJsonContentType(contentType: string): boolean {
+    const mediaType = contentType.toLowerCase().split(";", 1)[0]?.trim() ?? "";
+
+    return mediaType === "application/json" || mediaType.endsWith("+json");
+}
+
 export class SeqClient {
     private readonly apiBase: URL;
     private readonly rootBase: URL;
@@ -152,10 +158,9 @@ export class SeqClient {
             if (options.body !== undefined) {
                 headers["Content-Type"] =
                     options.contentType ?? "application/json";
-                requestPayload =
-                    headers["Content-Type"] === "application/json"
-                        ? JSON.stringify(options.body)
-                        : String(options.body);
+                requestPayload = isJsonContentType(headers["Content-Type"])
+                    ? JSON.stringify(options.body)
+                    : String(options.body);
 
                 const requestBytes = Buffer.byteLength(requestPayload);
                 if (requestBytes > this.maxRequestBytes) {
@@ -189,14 +194,11 @@ export class SeqClient {
                 }
             }
 
-            const payloadBytes = Buffer.from(await response.arrayBuffer());
-            if (payloadBytes.byteLength > this.maxResponseBytes) {
-                throw new SeqResponseTooLargeError(
-                    endpoint.pathname,
-                    payloadBytes.byteLength,
-                    this.maxResponseBytes,
-                );
-            }
+            const payloadBytes = await this.readResponseBytes(
+                response,
+                endpoint,
+                controller,
+            );
 
             const payload = this.parsePayload(
                 response.headers.get("content-type") ??
@@ -236,6 +238,48 @@ export class SeqClient {
         }
     }
 
+    private async readResponseBytes(
+        response: Response,
+        endpoint: URL,
+        controller: AbortController,
+    ): Promise<Buffer> {
+        if (!response.body) {
+            return Buffer.alloc(0);
+        }
+
+        const reader = response.body.getReader();
+        const chunks: Buffer[] = [];
+        let responseBytes = 0;
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    break;
+                }
+
+                const chunk = Buffer.from(value);
+                responseBytes += chunk.byteLength;
+
+                if (responseBytes > this.maxResponseBytes) {
+                    controller.abort();
+                    await reader.cancel().catch(() => undefined);
+                    throw new SeqResponseTooLargeError(
+                        endpoint.pathname,
+                        responseBytes,
+                        this.maxResponseBytes,
+                    );
+                }
+
+                chunks.push(chunk);
+            }
+        } finally {
+            reader.releaseLock();
+        }
+
+        return Buffer.concat(chunks, responseBytes);
+    }
+
     private resolveEndpoint(path: string): URL {
         let normalizedPath = path.replace(/^\/+/, "");
 
@@ -269,7 +313,7 @@ export class SeqClient {
             return null;
         }
 
-        if (contentType.includes("json")) {
+        if (isJsonContentType(contentType)) {
             const text = payloadBytes.toString("utf8");
 
             try {

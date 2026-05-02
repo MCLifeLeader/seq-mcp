@@ -31,6 +31,7 @@ async function startFakeSeqServer() {
             method: request.method,
             path: url.pathname,
             search: url.search,
+            headers: request.headers,
             body: body.toString("utf8"),
         });
 
@@ -600,6 +601,49 @@ test("seq_api_request forwards cataloged POST bodies to Seq", async () => {
     }
 });
 
+test("SeqClient JSON-stringifies parameterized JSON request content types", async () => {
+    const fakeSeq = await startFakeSeqServer();
+
+    try {
+        await withClient(
+            {
+                SEQ_URL: fakeSeq.baseUrl,
+                SEQ_API_KEY: "test-api-key",
+            },
+            async (client) => {
+                const result = await client.callTool({
+                    name: "seq_api_request",
+                    arguments: {
+                        method: "POST",
+                        path: "api/data",
+                        contentType: "application/json; charset=utf-8",
+                        body: {
+                            q: "select *",
+                            count: 10,
+                        },
+                    },
+                });
+
+                assert.equal(result.isError, undefined);
+                const payload = JSON.parse(result.content[0].text);
+                assert.deepEqual(payload.response.body, {
+                    q: "select *",
+                    count: 10,
+                });
+
+                const request = fakeSeq.requests.at(-1);
+                assert.equal(
+                    request?.headers["content-type"],
+                    "application/json; charset=utf-8",
+                );
+                assert.equal(request?.body, '{"q":"select *","count":10}');
+            },
+        );
+    } finally {
+        await fakeSeq.close();
+    }
+});
+
 test("binary Seq responses are returned as structured payloads", async () => {
     const fakeSeq = await startFakeSeqServer();
 
@@ -686,5 +730,65 @@ test("oversized responses fail gracefully with limit guidance", async () => {
         );
     } finally {
         await fakeSeq.close();
+    }
+});
+
+test("SeqClient enforces response size while streaming without content-length", async () => {
+    const requests = [];
+    const server = http.createServer((request, response) => {
+        const url = new URL(request.url ?? "/", "http://127.0.0.1");
+        requests.push(url.pathname);
+
+        if (url.pathname !== "/api/events/large-stream") {
+            response.writeHead(404, { "Content-Type": "application/json" });
+            response.end(JSON.stringify({ error: "not found" }));
+            return;
+        }
+
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.write(`{"payload":"${"x".repeat(256)}`);
+        setTimeout(() => {
+            if (!response.destroyed) {
+                response.end('"}');
+            }
+        }, 2_000);
+    });
+
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+
+    const address = server.address();
+    assert(address && typeof address === "object");
+
+    try {
+        const { SeqClient, SeqResponseTooLargeError } =
+            await import("../dist/seq-client.js");
+        const client = new SeqClient({
+            seqUrl: `http://127.0.0.1:${address.port}/api`,
+            seqApiKey: "test-api-key",
+            seqTimeoutMs: 5_000,
+            seqMaxRequestBytes: 262_144,
+            seqMaxResponseBytes: 128,
+        });
+
+        const started = Date.now();
+        await assert.rejects(
+            () =>
+                client.request({
+                    method: "GET",
+                    path: "api/events/large-stream",
+                }),
+            (error) => {
+                assert(error instanceof SeqResponseTooLargeError);
+                assert.equal(error.maxResponseBytes, 128);
+                assert.equal(error.endpoint, "/api/events/large-stream");
+                return true;
+            },
+        );
+        assert(Date.now() - started < 1_500);
+        assert.deepEqual(requests, ["/api/events/large-stream"]);
+    } finally {
+        server.close();
+        await once(server, "close");
     }
 });

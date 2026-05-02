@@ -3,6 +3,7 @@
 Thanks for your interest in contributing! This repository is a curated collection of scripts, templates and examples for developer tooling (containers, DevOps pipelines, Terraform, snippets and small helpers). The guidance below will help your contribution be reviewed and merged quickly.
 
 ### Table of contents
+
 - How to contribute
 - Reporting bugs & requesting features
 - Development workflow (branching & PRs)
@@ -27,11 +28,11 @@ Be respectful and constructive. This project follows the repository's `CODEOWNER
 
 - Use the Issues tab and choose the appropriate template if available.
 - For bugs, include:
-  - A short summary of the problem
-  - Steps to reproduce
-  - Expected vs actual behavior
-  - Environment details (OS, shell, versions) if relevant
-  - Small reproduction or sample files when possible
+    - A short summary of the problem
+    - Steps to reproduce
+    - Expected vs actual behavior
+    - Environment details (OS, shell, versions) if relevant
+    - Small reproduction or sample files when possible
 
 For feature requests, explain the problem you want solved and a suggested approach.
 

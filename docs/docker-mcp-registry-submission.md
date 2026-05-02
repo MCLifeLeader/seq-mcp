@@ -20,26 +20,26 @@ Use this checklist before opening a PR to `https://github.com/docker/mcp-registr
 ## Preflight (Required)
 
 1. Confirm image is publicly pullable.
-   - Example: `mcp/seq-otel` (implicit latest) or a versioned tag.
+    - Example: `mcp/seq-otel` (implicit latest) or a versioned tag.
 
 2. Verify `catalog/server.yaml`.
-   - `image` is correct and pullable.
-   - `source` metadata (URL/ref/path) is correct.
-   - `about.icon` points to a public stable URL.
-   - `config.env`/`config.secrets` placeholders are accurate.
+    - `image` is correct and pullable.
+    - `source` metadata (URL/ref/path) is correct.
+    - `about.icon` points to a public stable URL.
+    - `config.env`/`config.secrets` placeholders are accurate.
 
 3. Verify `catalog/tools.json`.
-   - Tool list matches actual server behavior.
-   - `inputSchema` values are valid JSON schema.
-   - Representative public tools are present.
+    - Tool list matches actual server behavior.
+    - `inputSchema` values are valid JSON schema.
+    - Representative public tools are present.
 
 4. Validate this repo build and contract.
-   - `npm run check`
-   - `npm run build`
-   - Build image and run a startup smoke test with required env vars.
+    - `npm run check`
+    - `npm run build`
+    - Build image and run a startup smoke test with required env vars.
 
 5. Re-check upstream docs/schemas on submission day.
-   - Registry requirements can change.
+    - Registry requirements can change.
 
 ## PR Content Checklist
 

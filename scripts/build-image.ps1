@@ -7,7 +7,7 @@ param(
     [string]$Tag = "",
 
     [Parameter()]
-    [string]$LatestTag = "latest",
+    [string]$LatestTag = "",
 
     [Parameter()]
     [string]$Registry = "",

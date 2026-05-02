@@ -3,7 +3,7 @@ set -euo pipefail
 
 IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otel}"
 TAG="${TAG:-}"
-LATEST_TAG="${LATEST_TAG-latest}"
+LATEST_TAG="${LATEST_TAG:-}"
 REGISTRY="${REGISTRY:-}"
 PUSH="${PUSH:-false}"
 SAVE_TAR="${SAVE_TAR:-}"
@@ -27,7 +27,7 @@ Usage: scripts/build-image.sh [options]
 Options:
   --image-name <name>   Image name (default: mcp/seq-otel)
   --tag <tag>           Image tag (optional)
-  --latest-tag <tag>    Additional tag to apply (default: latest, use empty string to disable)
+  --latest-tag <tag>    Additional tag to apply (optional)
   --registry <registry> Optional registry prefix (example: ghcr.io/my-org)
   --push                Push after build
   --save-tar <path>     Save image archive to tar file

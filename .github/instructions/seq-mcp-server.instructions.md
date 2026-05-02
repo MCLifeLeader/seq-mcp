@@ -1,6 +1,6 @@
 ---
-applyTo: '**/*'
-description: 'Project-specific instructions for building the Seq MCP server and its agent-facing contracts.'
+applyTo: "**/*"
+description: "Project-specific instructions for building the Seq MCP server and its agent-facing contracts."
 ---
 
 # Seq MCP Server Instructions

@@ -21,11 +21,11 @@ Required configuration:
 `SEQ_URL` accepts either:
 
 - Host URL (recommended; service will append `/api`):
-  - `http://localhost:10150`
-  - `https://seq.example.com`
+    - `http://localhost:10150`
+    - `https://seq.example.com`
 - Full API base URL (also supported):
-  - `http://localhost:10150/api`
-  - `https://seq.example.com/api`
+    - `http://localhost:10150/api`
+    - `https://seq.example.com/api`
 
 ## Available MCP Tools
 
@@ -67,14 +67,14 @@ Recommended permission profiles:
 
 Permission guidance for this project:
 
-| Permission | Needed now | Why |
-| --- | --- | --- |
-| `Read` | Yes | Required by starter query/retrieval workflows. |
-| `Ingest` | Usually No | Needed only when calling ingestion routes such as `ingest/*` or `api/events/raw` when API-key-for-writing is required. |
-| `Write` | Maybe | Needed for write routes (for example signals, dashboards, alerts, permalinks, SQL queries). |
-| `Project` | Maybe | Needed for project-scoped administration and some settings/index routes. |
-| `Organization` | Maybe | Needed for organization/user-management routes. |
-| `System` | Maybe | Needed for system administration routes (for example apps, feeds, backups, updates). |
+| Permission     | Needed now | Why                                                                                                                    |
+| -------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `Read`         | Yes        | Required by starter query/retrieval workflows.                                                                         |
+| `Ingest`       | Usually No | Needed only when calling ingestion routes such as `ingest/*` or `api/events/raw` when API-key-for-writing is required. |
+| `Write`        | Maybe      | Needed for write routes (for example signals, dashboards, alerts, permalinks, SQL queries).                            |
+| `Project`      | Maybe      | Needed for project-scoped administration and some settings/index routes.                                               |
+| `Organization` | Maybe      | Needed for organization/user-management routes.                                                                        |
+| `System`       | Maybe      | Needed for system administration routes (for example apps, feeds, backups, updates).                                   |
 
 Starter endpoint mapping in current implementation:
 
@@ -165,43 +165,49 @@ Or use helper scripts:
 PowerShell:
 
 ```powershell
-./scripts/build-image.ps1
+./build-docker-image.ps1
 ```
 
 Bash:
 
 ```bash
-./scripts/build-image.sh
+./build-docker-image.sh
 ```
+
+Script intent:
+
+- `./build-docker-image.sh`: builds the Docker image and adds it to your local Docker images.
+- `./build-docker-image.ps1`: builds the Docker image and adds it to your local Docker images.
+- `./scripts/run-mcp-compose.sh`: runs the MCP server through Docker Compose for stdio use; it can build if needed, but its primary job is to run the container.
 
 Build and push to registry (pullable by other Docker hosts):
 
 PowerShell:
 
 ```powershell
-./scripts/build-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.3.1 -Push
+./build-docker-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.3.1 -Push
 ```
 
 Bash:
 
 ```bash
-./scripts/build-image.sh --registry ghcr.io/mclifeleader --tag v0.3.1 --push
+./build-docker-image.sh --registry ghcr.io/mclifeleader --tag v0.3.1 --push
 ```
 
-The build scripts apply `:latest` by default alongside any explicit version tag. To disable this behavior, pass an empty latest-tag value (PowerShell: `-LatestTag ""`; Bash: `--latest-tag ""`).
+By default, the build scripts do not apply an additional tag. If you want one, pass it explicitly with PowerShell `-LatestTag <tag>` or Bash `--latest-tag <tag>`.
 
 Build and export tar (loadable with `docker load`):
 
 PowerShell:
 
 ```powershell
-./scripts/build-image.ps1 -SaveTar ./mcp-seq-otel.tar
+./build-docker-image.ps1 -SaveTar ./mcp-seq-otel.tar
 ```
 
 Bash:
 
 ```bash
-./scripts/build-image.sh --save-tar ./mcp-seq-otel.tar
+./build-docker-image.sh --save-tar ./mcp-seq-otel.tar
 ```
 
 Run against local Seq:
@@ -259,22 +265,22 @@ Assumes the image already exists (`mcp/seq-otel`).
 
 ```json
 {
-  "mcpServers": {
-    "seq-otel": {
-      "type": "stdio",
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-e",
-        "SEQ_URL=http://host.docker.internal:10150",
-        "-e",
-        "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
-        "mcp/seq-otel"
-      ]
+    "mcpServers": {
+        "seq-otel": {
+            "type": "stdio",
+            "command": "docker",
+            "args": [
+                "run",
+                "--rm",
+                "-i",
+                "-e",
+                "SEQ_URL=http://host.docker.internal:10150",
+                "-e",
+                "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
+                "mcp/seq-otel"
+            ]
+        }
     }
-  }
 }
 ```
 
@@ -304,22 +310,22 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
 
 ```json
 {
-  "mcpServers": {
-    "seq-otel": {
-      "type": "stdio",
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-e",
-        "SEQ_URL=https://seq.example.com",
-        "-e",
-        "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
-        "mcp/seq-otel"
-      ]
+    "mcpServers": {
+        "seq-otel": {
+            "type": "stdio",
+            "command": "docker",
+            "args": [
+                "run",
+                "--rm",
+                "-i",
+                "-e",
+                "SEQ_URL=https://seq.example.com",
+                "-e",
+                "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
+                "mcp/seq-otel"
+            ]
+        }
     }
-  }
 }
 ```
 

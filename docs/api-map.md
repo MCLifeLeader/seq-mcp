@@ -21,36 +21,36 @@ Source: `src/route-catalog.ts`
 ### Method Distribution
 
 | Method | Count |
-| --- | ---: |
-| GET | 135 |
-| POST | 33 |
-| PUT | 24 |
-| DELETE | 18 |
+| ------ | ----: |
+| GET    |   135 |
+| POST   |    33 |
+| PUT    |    24 |
+| DELETE |    18 |
 
 ### Permission Distribution
 
-| Permission | Count |
-| --- | ---: |
-| System | 51 |
-| Public | 49 |
-| Read | 46 |
-| Write | 33 |
-| Project | 22 |
-| Organization | 9 |
+| Permission   | Count |
+| ------------ | ----: |
+| System       |    51 |
+| Public       |    49 |
+| Read         |    46 |
+| Write        |    33 |
+| Project      |    22 |
+| Organization |     9 |
 
 ## Important Route Families
 
-| Family | Why It Matters | Typical Permission |
-| --- | --- | --- |
-| `events` | Core search/scan/stream workflows | `Read` |
-| `data` | Query execution used by starter flows | `Read` |
-| `signals` | Signal create/read/update/delete | `Read`, `Write` |
-| `dashboards` | Dashboard create/read/update/delete | `Read`, `Write` |
-| `workspaces` | Workspace create/read/update/delete | `Read`, `Write` |
-| `diagnostics` | Operational health and diagnostics | `Read`, `Project`, `System` |
-| `settings` | Mixed public/system/org configuration | `Public`, `System`, `Organization` |
-| `users` | Identity and user-management surface | `Read`, `Write`, `Project`, `Organization`, `System` |
-| `ingest/*` | Log/OTLP ingestion endpoints | `Public` plus ingestion policy constraints |
+| Family        | Why It Matters                        | Typical Permission                                   |
+| ------------- | ------------------------------------- | ---------------------------------------------------- |
+| `events`      | Core search/scan/stream workflows     | `Read`                                               |
+| `data`        | Query execution used by starter flows | `Read`                                               |
+| `signals`     | Signal create/read/update/delete      | `Read`, `Write`                                      |
+| `dashboards`  | Dashboard create/read/update/delete   | `Read`, `Write`                                      |
+| `workspaces`  | Workspace create/read/update/delete   | `Read`, `Write`                                      |
+| `diagnostics` | Operational health and diagnostics    | `Read`, `Project`, `System`                          |
+| `settings`    | Mixed public/system/org configuration | `Public`, `System`, `Organization`                   |
+| `users`       | Identity and user-management surface  | `Read`, `Write`, `Project`, `Organization`, `System` |
+| `ingest/*`    | Log/OTLP ingestion endpoints          | `Public` plus ingestion policy constraints           |
 
 ## Permission Strategy
 

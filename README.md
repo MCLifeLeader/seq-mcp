@@ -29,6 +29,7 @@ Required configuration:
 
 ## Available MCP Tools
 
+- `seq_agent_guide`: returns agent-focused tool selection rules, recommended workflows, examples, and safety limits.
 - `seq_connection_test`: validates Seq connectivity and API reachability, and reports the resolved root `/health` URL used for the check.
 - `seq_starter_help`: lists the compact starter alias tools.
 - `seq_starter_overview`: quick health, user, diagnostics, signals, and workspace summary.
@@ -49,6 +50,49 @@ Scope note:
 - `seq_starter_*` tools are focused on common read workflows.
 - `seq_api_request` and `seq_<verb>_<route>` expose the broader HTTP API surface from the Seq endpoint catalog, including non-`GET` routes.
 - Generic requests are constrained to official route templates, with bounded query/path maps and request/response size limits to reduce accidental high-cost calls.
+
+## Agent Usage Process
+
+AI agents should follow this sequence for reliable use:
+
+1. Start with `seq_agent_guide` to get the current workflow guidance and example calls.
+2. Use `seq_connection_test` if the target Seq instance, API key, or URL shape may be wrong.
+3. Use `seq_starter_overview` to understand the current user, diagnostics status, and visible signals/workspaces.
+4. Prefer `seq_starter_events_search`, `seq_starter_data_query`, and other `seq_starter_*` tools for common read workflows.
+5. For advanced API access, call `seq_api_catalog` first, then call `seq_api_request` with the exact official route template.
+
+Short examples:
+
+```json
+{
+    "tool": "seq_starter_events_search",
+    "arguments": {
+        "filter": "@Level = 'Error'",
+        "count": 50,
+        "render": true
+    }
+}
+```
+
+```json
+{
+    "tool": "seq_api_request",
+    "arguments": {
+        "method": "GET",
+        "path": "api/events/{id}",
+        "pathParams": {
+            "id": "event-123"
+        },
+        "query": {
+            "render": "true"
+        }
+    }
+}
+```
+
+Detailed agent workflow guide:
+
+- [`docs/agent-workflows.md`](docs/agent-workflows.md)
 
 ## Seq API Key Permissions
 

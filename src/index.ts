@@ -22,6 +22,8 @@ let seq: SeqClient | undefined;
 const server = new McpServer({
     name: "mcp-seq-otel",
     version: "0.3.1",
+    description:
+        "Agent-friendly MCP server for bounded Datalust Seq log, OpenTelemetry, diagnostics, and official API access.",
 });
 
 const MAX_QUERY_ENTRIES = 25;
@@ -46,6 +48,26 @@ const stringRecordSchema = z
     .record(z.string().min(1).max(100), constrainedStringSchema)
     .optional();
 const genericJsonSchema = z.unknown().optional();
+const pathParamsSchema = stringRecordSchema.describe(
+    "Named values for route template placeholders, for example { id: 'event-123' } for api/events/{id}. Values are URL-encoded by the server.",
+);
+const querySchema = stringRecordSchema.describe(
+    "Seq query string parameters as string values. Keep filters/time ranges/counts bounded; use the starter tools for common query shapes.",
+);
+const bodySchema = genericJsonSchema.describe(
+    "JSON-compatible request body for routes that accept one. Omit for GET routes unless the Seq API route explicitly documents a body.",
+);
+const contentTypeSchema = z
+    .string()
+    .min(1)
+    .max(128)
+    .refine((value) => !/[\r\n]/.test(value), {
+        message: "contentType must not contain line breaks",
+    })
+    .optional()
+    .describe(
+        "Request Content-Type. Defaults to application/json when body is supplied.",
+    );
 
 function getConfig(): ServerConfig {
     if (!config) {
@@ -494,51 +516,184 @@ function expandCommonLevelAliases(
     );
 }
 
-server.tool("seq_starter_overview", {}, async () => {
-    return withGracefulErrors("seq_starter_overview", async () => {
-        const calls = await Promise.allSettled([
-            callCatalogRoute("GET", "api", {}),
-            callCatalogRoute("GET", "api/users/current", {}),
-            callCatalogRoute("GET", "api/diagnostics/status", {}),
-            callOwnershipScopedListRoute("api/signals"),
-            callOwnershipScopedListRoute("api/workspaces"),
-        ]);
+const STARTER_TOOL_NAMES = [
+    "seq_starter_overview",
+    "seq_starter_events_search",
+    "seq_starter_event_by_id",
+    "seq_starter_data_query",
+    "seq_starter_signals_list",
+    "seq_starter_signal_by_id",
+    "seq_starter_dashboards_list",
+    "seq_starter_alerts_list",
+    "seq_starter_events_stream",
+] as const;
 
-        const valueOrError = (
-            result: PromiseSettledResult<unknown>,
-        ): unknown => {
-            if (result.status === "fulfilled") {
-                return result.value;
-            }
-
-            return {
-                unavailable: true,
-                reason:
-                    result.reason instanceof Error
-                        ? result.reason.message
-                        : String(result.reason),
-            };
-        };
-
-        return {
-            api: valueOrError(calls[0]),
-            currentUser: valueOrError(calls[1]),
-            diagnosticsStatus: valueOrError(calls[2]),
-            signals: valueOrError(calls[3]),
-            workspaces: valueOrError(calls[4]),
-        };
-    });
+const AGENT_GUIDE = Object.freeze({
+    purpose:
+        "Query and inspect a user-owned Datalust Seq instance through bounded MCP tools. Prefer read-focused starter tools before using the generic route invoker.",
+    recommendedProcess: [
+        "Call seq_connection_test first when connectivity, auth, or Seq URL shape is unknown.",
+        "Use seq_starter_overview to learn the current user, diagnostics status, signals, and workspaces.",
+        "Use seq_starter_events_search for log/event retrieval by Seq filter, signal, count, and UTC time range.",
+        "Use seq_starter_data_query for Seq SQL-style q queries and aggregations.",
+        "Use seq_api_catalog to find an official route template before seq_api_request.",
+        "Use seq_api_request only with cataloged routes and explicit method/path/pathParams/query/body values.",
+    ],
+    toolSelection: {
+        troubleshooting:
+            "seq_connection_test, then seq_starter_overview, then seq_starter_events_search.",
+        eventSearch:
+            "seq_starter_events_search for recent events; seq_starter_event_by_id when an event id is already known.",
+        aggregation:
+            "seq_starter_data_query with q, count, and optional UTC time range.",
+        routeDiscovery:
+            "seq_api_catalog for documented routes; seq_api_live_links for routes advertised by the target Seq instance.",
+        advancedApi:
+            "seq_api_request for official cataloged routes; generated seq_<verb>_<route> tools are direct route aliases.",
+    },
+    examples: [
+        {
+            task: "Find recent errors",
+            tool: "seq_starter_events_search",
+            arguments: {
+                filter: "@Level = 'Error'",
+                count: 50,
+                render: true,
+            },
+        },
+        {
+            task: "Count events by service over a time range",
+            tool: "seq_starter_data_query",
+            arguments: {
+                q: "select count(*) as Count by ServiceName from stream group by ServiceName order by Count desc",
+                fromDateUtc: "2026-05-11T00:00:00Z",
+                toDateUtc: "2026-05-11T01:00:00Z",
+                count: 100,
+            },
+        },
+        {
+            task: "Call a specific documented route",
+            tool: "seq_api_request",
+            arguments: {
+                method: "GET",
+                path: "api/events/{id}",
+                pathParams: {
+                    id: "event-123",
+                },
+                query: {
+                    render: "true",
+                },
+            },
+        },
+    ],
+    safetyLimits: {
+        maxEventOrQueryCount: 500,
+        maxQueryEntries: MAX_QUERY_ENTRIES,
+        maxPathParamEntries: MAX_PATH_PARAM_ENTRIES,
+        maxStringValueLength: MAX_STRING_VALUE_LENGTH,
+        maxRouteTemplateLength: MAX_ROUTE_TEMPLATE_LENGTH,
+        maxResolvedPathLength: MAX_RESOLVED_PATH_LENGTH,
+    },
 });
 
 server.tool(
+    "seq_agent_guide",
+    "Return concise guidance that tells AI agents how to choose Seq MCP tools, recommended workflows, example calls, and safety limits.",
+    {},
+    async () => {
+        return okResult({
+            ...AGENT_GUIDE,
+            starterTools: STARTER_TOOL_NAMES,
+            genericTools: [
+                "seq_api_catalog",
+                "seq_api_live_links",
+                "seq_api_request",
+                "seq_<verb>_<route>",
+            ],
+        });
+    },
+);
+
+server.tool(
+    "seq_starter_overview",
+    "Run a safe read-only overview: API root, current user, diagnostics status, shared/personal signals, and shared/personal workspaces.",
+    {},
+    async () => {
+        return withGracefulErrors("seq_starter_overview", async () => {
+            const calls = await Promise.allSettled([
+                callCatalogRoute("GET", "api", {}),
+                callCatalogRoute("GET", "api/users/current", {}),
+                callCatalogRoute("GET", "api/diagnostics/status", {}),
+                callOwnershipScopedListRoute("api/signals"),
+                callOwnershipScopedListRoute("api/workspaces"),
+            ]);
+
+            const valueOrError = (
+                result: PromiseSettledResult<unknown>,
+            ): unknown => {
+                if (result.status === "fulfilled") {
+                    return result.value;
+                }
+
+                return {
+                    unavailable: true,
+                    reason:
+                        result.reason instanceof Error
+                            ? result.reason.message
+                            : String(result.reason),
+                };
+            };
+
+            return {
+                api: valueOrError(calls[0]),
+                currentUser: valueOrError(calls[1]),
+                diagnosticsStatus: valueOrError(calls[2]),
+                signals: valueOrError(calls[3]),
+                workspaces: valueOrError(calls[4]),
+            };
+        });
+    },
+);
+
+server.tool(
     "seq_starter_events_search",
+    "Search Seq events with a bounded count, optional Seq filter, signal id/name, UTC time window, and rendered message output.",
     {
-        filter: z.string().optional(),
-        signal: z.string().optional(),
-        count: z.number().int().min(1).max(500).optional().default(50),
-        fromDateUtc: z.string().optional(),
-        toDateUtc: z.string().optional(),
-        render: z.boolean().optional().default(false),
+        filter: z
+            .string()
+            .optional()
+            .describe(
+                "Seq filter expression, for example @Level = 'Error' or RequestPath like '/api%'. Common @Level aliases are expanded.",
+            ),
+        signal: z
+            .string()
+            .optional()
+            .describe("Optional Seq signal id/name to scope the event search."),
+        count: z
+            .number()
+            .int()
+            .min(1)
+            .max(500)
+            .optional()
+            .default(50)
+            .describe("Maximum events to return, from 1 to 500. Default 50."),
+        fromDateUtc: z
+            .string()
+            .optional()
+            .describe(
+                "Inclusive UTC start time, for example 2026-05-11T00:00:00Z.",
+            ),
+        toDateUtc: z
+            .string()
+            .optional()
+            .describe(
+                "Exclusive UTC end time, for example 2026-05-11T01:00:00Z.",
+            ),
+        render: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe("When true, ask Seq to include rendered event messages."),
     },
     async ({ filter, signal, count, fromDateUtc, toDateUtc, render }) => {
         const route = findCatalogEntry("GET", "api/events");
@@ -562,9 +717,16 @@ server.tool(
 
 server.tool(
     "seq_starter_event_by_id",
+    "Fetch one Seq event by event id, optionally including rendered message text.",
     {
-        id: z.string().min(1),
-        render: z.boolean().optional().default(false),
+        id: z.string().min(1).describe("Seq event id."),
+        render: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe(
+                "When true, ask Seq to include rendered event message text.",
+            ),
     },
     async ({ id, render }) => {
         const route = findCatalogEntry("GET", "api/events/{id}");
@@ -582,13 +744,45 @@ server.tool(
 
 server.tool(
     "seq_starter_data_query",
+    "Run a bounded Seq data query using the q language for aggregation, projection, and analysis.",
     {
-        q: z.string().min(1),
-        signalId: z.string().optional(),
-        fromDateUtc: z.string().optional(),
-        toDateUtc: z.string().optional(),
-        count: z.number().int().min(1).max(500).optional().default(100),
-        usePost: z.boolean().optional().default(false),
+        q: z
+            .string()
+            .min(1)
+            .describe(
+                "Seq q query, for example select count(*) as Count from stream. Keep it scoped with time range/count when possible.",
+            ),
+        signalId: z
+            .string()
+            .optional()
+            .describe("Optional signal id to scope the query."),
+        fromDateUtc: z
+            .string()
+            .optional()
+            .describe(
+                "Inclusive UTC start time, for example 2026-05-11T00:00:00Z.",
+            ),
+        toDateUtc: z
+            .string()
+            .optional()
+            .describe(
+                "Exclusive UTC end time, for example 2026-05-11T01:00:00Z.",
+            ),
+        count: z
+            .number()
+            .int()
+            .min(1)
+            .max(500)
+            .optional()
+            .default(100)
+            .describe(
+                "Maximum rows/events to return, from 1 to 500. Default 100.",
+            ),
+        usePost: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe("Use POST for long q queries; GET is the default."),
     },
     async ({ q, signalId, fromDateUtc, toDateUtc, count, usePost }) => {
         const method: SeqMethod = usePost ? "POST" : "GET";
@@ -612,19 +806,25 @@ server.tool(
     },
 );
 
-server.tool("seq_starter_signals_list", {}, async () => {
-    const route = findCatalogEntry("GET", "api/signals");
-    return withGracefulErrors(
-        "seq_starter_signals_list",
-        async () => callOwnershipScopedListRoute("api/signals"),
-        route?.permission,
-    );
-});
+server.tool(
+    "seq_starter_signals_list",
+    "List shared and personal Seq signals visible to the configured API key.",
+    {},
+    async () => {
+        const route = findCatalogEntry("GET", "api/signals");
+        return withGracefulErrors(
+            "seq_starter_signals_list",
+            async () => callOwnershipScopedListRoute("api/signals"),
+            route?.permission,
+        );
+    },
+);
 
 server.tool(
     "seq_starter_signal_by_id",
+    "Fetch one Seq signal by id.",
     {
-        id: z.string().min(1),
+        id: z.string().min(1).describe("Seq signal id."),
     },
     async ({ id }) => {
         const route = findCatalogEntry("GET", "api/signals/{id}");
@@ -639,31 +839,59 @@ server.tool(
     },
 );
 
-server.tool("seq_starter_dashboards_list", {}, async () => {
-    const route = findCatalogEntry("GET", "api/dashboards");
-    return withGracefulErrors(
-        "seq_starter_dashboards_list",
-        async () => callOwnershipScopedListRoute("api/dashboards"),
-        route?.permission,
-    );
-});
+server.tool(
+    "seq_starter_dashboards_list",
+    "List shared and personal Seq dashboards visible to the configured API key.",
+    {},
+    async () => {
+        const route = findCatalogEntry("GET", "api/dashboards");
+        return withGracefulErrors(
+            "seq_starter_dashboards_list",
+            async () => callOwnershipScopedListRoute("api/dashboards"),
+            route?.permission,
+        );
+    },
+);
 
-server.tool("seq_starter_alerts_list", {}, async () => {
-    const route = findCatalogEntry("GET", "api/alerts");
-    return withGracefulErrors(
-        "seq_starter_alerts_list",
-        async () => callOwnershipScopedListRoute("api/alerts"),
-        route?.permission,
-    );
-});
+server.tool(
+    "seq_starter_alerts_list",
+    "List shared and personal Seq alerts visible to the configured API key.",
+    {},
+    async () => {
+        const route = findCatalogEntry("GET", "api/alerts");
+        return withGracefulErrors(
+            "seq_starter_alerts_list",
+            async () => callOwnershipScopedListRoute("api/alerts"),
+            route?.permission,
+        );
+    },
+);
 
 server.tool(
     "seq_starter_events_stream",
+    "Poll the bounded Seq events stream endpoint for recent/new events with optional filter and signal scope.",
     {
-        filter: z.string().optional(),
-        signal: z.string().optional(),
-        wait: z.number().int().min(0).max(30).optional().default(5),
-        render: z.boolean().optional().default(false),
+        filter: z
+            .string()
+            .optional()
+            .describe("Optional Seq filter expression for streamed events."),
+        signal: z
+            .string()
+            .optional()
+            .describe("Optional Seq signal id/name to scope streamed events."),
+        wait: z
+            .number()
+            .int()
+            .min(0)
+            .max(30)
+            .optional()
+            .default(5)
+            .describe("Long-poll wait seconds, from 0 to 30. Default 5."),
+        render: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe("When true, ask Seq to include rendered event messages."),
     },
     async ({ filter, signal, wait, render }) => {
         const route = findCatalogEntry("GET", "api/events/stream");
@@ -683,27 +911,30 @@ server.tool(
     },
 );
 
-server.tool("seq_starter_help", {}, async () => {
-    return okResult({
-        starterTools: [
-            "seq_starter_overview",
-            "seq_starter_events_search",
-            "seq_starter_event_by_id",
-            "seq_starter_data_query",
-            "seq_starter_signals_list",
-            "seq_starter_signal_by_id",
-            "seq_starter_dashboards_list",
-            "seq_starter_alerts_list",
-            "seq_starter_events_stream",
-        ],
-        note: "Use seq_api_catalog and seq_api_request for full API surface access.",
-    });
-});
+server.tool(
+    "seq_starter_help",
+    "List common starter tools and the recommended process for AI agents using this Seq MCP server.",
+    {},
+    async () => {
+        return okResult({
+            starterTools: STARTER_TOOL_NAMES,
+            recommendedProcess: AGENT_GUIDE.recommendedProcess,
+            toolSelection: AGENT_GUIDE.toolSelection,
+            examples: AGENT_GUIDE.examples,
+            note: "Use seq_api_catalog and seq_api_request for full API surface access.",
+        });
+    },
+);
 
 server.tool(
     "seq_connection_test",
+    "Validate Seq connectivity, authentication, resolved API base URL, and host-root health endpoint.",
     {
-        includeApiInfo: z.boolean().optional().default(true),
+        includeApiInfo: z
+            .boolean()
+            .optional()
+            .default(true)
+            .describe("When true, also fetch the Seq API root document."),
     },
     async ({ includeApiInfo }) => {
         return withGracefulErrors("seq_connection_test", async () => {
@@ -729,11 +960,29 @@ server.tool(
 
 server.tool(
     "seq_api_catalog",
+    "Search the built-in official Seq route catalog by method, permission, or text before making advanced API calls.",
     {
-        method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).optional(),
-        permission: z.string().optional(),
-        search: z.string().optional(),
-        includeNotes: z.boolean().optional().default(false),
+        method: z
+            .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
+            .optional()
+            .describe("Optional HTTP method filter."),
+        permission: z
+            .string()
+            .optional()
+            .describe(
+                "Optional Seq permission filter such as Public, Read, Write, Project, Organization, or System.",
+            ),
+        search: z
+            .string()
+            .optional()
+            .describe(
+                "Case-insensitive text search across route, permission, requirements, and notes.",
+            ),
+        includeNotes: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe("When true, include notes from the route catalog."),
     },
     async ({ method, permission, search, includeNotes }) => {
         const filtered = SEQ_ROUTE_CATALOG.filter((entry) => {
@@ -775,8 +1024,14 @@ server.tool(
 
 server.tool(
     "seq_api_live_links",
+    "Discover route links advertised by the connected Seq instance, useful for comparing live routes with the static catalog.",
     {
-        sourceFilter: z.string().optional(),
+        sourceFilter: z
+            .string()
+            .optional()
+            .describe(
+                "Optional case-insensitive source route filter, for example api/events/resources.",
+            ),
     },
     async ({ sourceFilter }) => {
         return withGracefulErrors("seq_api_live_links", async () => {
@@ -799,20 +1054,22 @@ server.tool(
 
 server.tool(
     "seq_api_request",
+    "Execute an advanced Seq API request against an official cataloged route template. Use seq_api_catalog first to choose method/path.",
     {
-        method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
-        path: z.string().min(1).max(MAX_ROUTE_TEMPLATE_LENGTH),
-        pathParams: stringRecordSchema,
-        query: stringRecordSchema,
-        body: genericJsonSchema,
-        contentType: z
+        method: z
+            .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
+            .describe("HTTP method matching an entry from seq_api_catalog."),
+        path: z
             .string()
             .min(1)
-            .max(128)
-            .refine((value) => !/[\r\n]/.test(value), {
-                message: "contentType must not contain line breaks",
-            })
-            .optional(),
+            .max(MAX_ROUTE_TEMPLATE_LENGTH)
+            .describe(
+                "Official Seq route template from seq_api_catalog, for example api/events/{id}. Do not include a leading slash.",
+            ),
+        pathParams: pathParamsSchema,
+        query: querySchema,
+        body: bodySchema,
+        contentType: contentTypeSchema,
     },
     async ({ method, path, pathParams, query, body, contentType }) => {
         const route = findCatalogEntry(method, path);
@@ -863,18 +1120,12 @@ for (const entry of SEQ_ROUTE_CATALOG) {
 
     server.tool(
         toolName,
+        `Direct Seq ${entry.method} route alias for '${entry.path}'. Permission: ${entry.permission || "unknown"}.${entry.additional ? ` ${entry.additional}` : ""}`,
         {
-            pathParams: stringRecordSchema,
-            query: stringRecordSchema,
-            body: genericJsonSchema,
-            contentType: z
-                .string()
-                .min(1)
-                .max(128)
-                .refine((value) => !/[\r\n]/.test(value), {
-                    message: "contentType must not contain line breaks",
-                })
-                .optional(),
+            pathParams: pathParamsSchema,
+            query: querySchema,
+            body: bodySchema,
+            contentType: contentTypeSchema,
         },
         async ({ pathParams, query, body, contentType }) => {
             return withGracefulErrors(

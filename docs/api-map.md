@@ -63,8 +63,10 @@ Source: `src/route-catalog.ts`
 
 Use this order when verifying a target Seq instance:
 
-1. `seq_connection_test`
-2. `seq_api_catalog`
-3. `seq_api_live_links`
-4. `seq_api_request` against one known safe route (for example `GET /api/events/resources`)
-5. `npm run validate:live-contract` from the repo when `SEQ_URL` and `SEQ_API_KEY` are available in the shell environment
+1. `seq_agent_guide`
+2. `seq_connection_test`
+3. `seq_starter_overview`
+4. `seq_api_catalog`
+5. `seq_api_live_links`
+6. `seq_api_request` against one known safe route (for example `GET /api/events/resources`)
+7. `npm run validate:live-contract` from the repo when `SEQ_URL` and `SEQ_API_KEY` are available in the shell environment

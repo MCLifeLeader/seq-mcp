@@ -1,7 +1,7 @@
 [
   {
-    "name": "seq_starter_help",
-    "description": "List compact starter alias tools for common Seq operations.",
+    "name": "seq_agent_guide",
+    "description": "Return concise guidance that tells AI agents how to choose Seq MCP tools, recommended workflows, example calls, and safety limits.",
     "inputSchema": {
       "type": "object",
       "properties": {}
@@ -9,81 +9,271 @@
   },
   {
     "name": "seq_connection_test",
-    "description": "Validate connectivity and authentication against Seq.",
+    "description": "Validate Seq connectivity, authentication, resolved API base URL, and host-root health endpoint.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "includeApiInfo": {
           "type": "boolean",
-          "description": "Include API root payload in the test result."
+          "default": true,
+          "description": "When true, also fetch the Seq API root document."
+        }
+      }
+    }
+  },
+  {
+    "name": "seq_starter_help",
+    "description": "List common starter tools and the recommended process for AI agents using this Seq MCP server.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "seq_starter_overview",
+    "description": "Run a safe read-only overview: API root, current user, diagnostics status, shared/personal signals, and shared/personal workspaces.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "seq_starter_events_search",
+    "description": "Search Seq events with a bounded count, optional Seq filter, signal id/name, UTC time window, and rendered message output.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "type": "string",
+          "description": "Seq filter expression, for example @Level = 'Error' or RequestPath like '/api%'. Common @Level aliases are expanded."
+        },
+        "signal": {
+          "type": "string",
+          "description": "Optional Seq signal id/name to scope the event search."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 50,
+          "description": "Maximum events to return, from 1 to 500. Default 50."
+        },
+        "fromDateUtc": {
+          "type": "string",
+          "description": "Inclusive UTC start time, for example 2026-05-11T00:00:00Z."
+        },
+        "toDateUtc": {
+          "type": "string",
+          "description": "Exclusive UTC end time, for example 2026-05-11T01:00:00Z."
+        },
+        "render": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, ask Seq to include rendered event messages."
+        }
+      }
+    }
+  },
+  {
+    "name": "seq_starter_event_by_id",
+    "description": "Fetch one Seq event by event id, optionally including rendered message text.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Seq event id."
+        },
+        "render": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, ask Seq to include rendered event message text."
+        }
+      },
+      "required": ["id"]
+    }
+  },
+  {
+    "name": "seq_starter_data_query",
+    "description": "Run a bounded Seq data query using the q language for aggregation, projection, and analysis.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "string",
+          "description": "Seq q query, for example select count(*) as Count from stream. Keep it scoped with time range/count when possible."
+        },
+        "signalId": {
+          "type": "string",
+          "description": "Optional signal id to scope the query."
+        },
+        "fromDateUtc": {
+          "type": "string",
+          "description": "Inclusive UTC start time, for example 2026-05-11T00:00:00Z."
+        },
+        "toDateUtc": {
+          "type": "string",
+          "description": "Exclusive UTC end time, for example 2026-05-11T01:00:00Z."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100,
+          "description": "Maximum rows/events to return, from 1 to 500. Default 100."
+        },
+        "usePost": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use POST for long q queries; GET is the default."
+        }
+      },
+      "required": ["q"]
+    }
+  },
+  {
+    "name": "seq_starter_signals_list",
+    "description": "List shared and personal Seq signals visible to the configured API key.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "seq_starter_signal_by_id",
+    "description": "Fetch one Seq signal by id.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Seq signal id."
+        }
+      },
+      "required": ["id"]
+    }
+  },
+  {
+    "name": "seq_starter_dashboards_list",
+    "description": "List shared and personal Seq dashboards visible to the configured API key.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "seq_starter_alerts_list",
+    "description": "List shared and personal Seq alerts visible to the configured API key.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "seq_starter_events_stream",
+    "description": "Poll the bounded Seq events stream endpoint for recent/new events with optional filter and signal scope.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "type": "string",
+          "description": "Optional Seq filter expression for streamed events."
+        },
+        "signal": {
+          "type": "string",
+          "description": "Optional Seq signal id/name to scope streamed events."
+        },
+        "wait": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "default": 5,
+          "description": "Long-poll wait seconds, from 0 to 30. Default 5."
+        },
+        "render": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, ask Seq to include rendered event messages."
         }
       }
     }
   },
   {
     "name": "seq_api_catalog",
-    "description": "List official Seq API routes with methods and permissions.",
+    "description": "Search the built-in official Seq route catalog by method, permission, or text before making advanced API calls.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "method": {
           "type": "string",
-          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "description": "Optional HTTP method filter."
         },
         "permission": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional Seq permission filter such as Public, Read, Write, Project, Organization, or System."
         },
         "search": {
-          "type": "string"
+          "type": "string",
+          "description": "Case-insensitive text search across route, permission, requirements, and notes."
         },
         "includeNotes": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false,
+          "description": "When true, include notes from the route catalog."
         }
       }
     }
   },
   {
     "name": "seq_api_live_links",
-    "description": "Discover live name-to-route links from the target Seq API.",
+    "description": "Discover route links advertised by the connected Seq instance, useful for comparing live routes with the static catalog.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "sourceFilter": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional case-insensitive source route filter, for example api/events/resources."
         }
       }
     }
   },
   {
     "name": "seq_api_request",
-    "description": "Execute a Seq API request with method, route template, params, query, and body.",
+    "description": "Execute an advanced Seq API request against an official cataloged route template. Use seq_api_catalog first to choose method/path.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "method": {
           "type": "string",
-          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "description": "HTTP method matching an entry from seq_api_catalog."
         },
         "path": {
-          "type": "string"
+          "type": "string",
+          "description": "Official Seq route template from seq_api_catalog, for example api/events/{id}. Do not include a leading slash."
         },
         "pathParams": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "Named values for route template placeholders, for example { id: 'event-123' } for api/events/{id}. Values are URL-encoded by the server."
         },
         "query": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "Seq query string parameters as string values. Keep filters/time ranges/counts bounded; use the starter tools for common query shapes."
         },
         "body": {
-          "type": ["object", "array", "string", "number", "boolean", "null"]
+          "type": ["object", "array", "string", "number", "boolean", "null"],
+          "description": "JSON-compatible request body for routes that accept one. Omit for GET routes unless the Seq API route explicitly documents a body."
         },
         "contentType": {
-          "type": "string"
+          "type": "string",
+          "description": "Request Content-Type. Defaults to application/json when body is supplied."
         }
       },
       "required": ["method", "path"]

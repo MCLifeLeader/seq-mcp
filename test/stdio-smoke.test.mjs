@@ -289,6 +289,107 @@ test("stdio MCP server initializes and answers seq_connection_test", async () =>
     }
 });
 
+test("stdio MCP server advertises agent-friendly tool descriptions", async () => {
+    const fakeSeq = await startFakeSeqServer();
+
+    try {
+        await withClient(
+            {
+                SEQ_URL: fakeSeq.baseUrl,
+                SEQ_API_KEY: "test-api-key",
+            },
+            async (client) => {
+                const tools = await client.listTools();
+                const byName = new Map(
+                    tools.tools.map((tool) => [tool.name, tool]),
+                );
+
+                assert.match(
+                    byName.get("seq_agent_guide")?.description ?? "",
+                    /recommended workflows/i,
+                );
+                assert.match(
+                    byName.get("seq_starter_events_search")?.description ?? "",
+                    /Search Seq events/i,
+                );
+                assert.match(
+                    byName.get("seq_api_request")?.description ?? "",
+                    /seq_api_catalog first/i,
+                );
+                assert.match(
+                    byName.get("seq_get_api_events")?.description ?? "",
+                    /Direct Seq GET route alias/i,
+                );
+
+                const eventsSearchProperties =
+                    byName.get("seq_starter_events_search")?.inputSchema
+                        ?.properties ?? {};
+                assert.match(
+                    eventsSearchProperties.filter.description,
+                    /Seq filter expression/i,
+                );
+                assert.match(
+                    eventsSearchProperties.fromDateUtc.description,
+                    /UTC start time/i,
+                );
+
+                const apiRequestProperties =
+                    byName.get("seq_api_request")?.inputSchema?.properties ??
+                    {};
+                assert.match(
+                    apiRequestProperties.path.description,
+                    /Official Seq route template/i,
+                );
+                assert.match(
+                    apiRequestProperties.pathParams.description,
+                    /route template placeholders/i,
+                );
+            },
+        );
+    } finally {
+        await fakeSeq.close();
+    }
+});
+
+test("seq_agent_guide returns process guidance and examples", async () => {
+    const fakeSeq = await startFakeSeqServer();
+
+    try {
+        await withClient(
+            {
+                SEQ_URL: fakeSeq.baseUrl,
+                SEQ_API_KEY: "test-api-key",
+            },
+            async (client) => {
+                const result = await client.callTool({
+                    name: "seq_agent_guide",
+                    arguments: {},
+                });
+
+                assert.equal(result.isError, undefined);
+
+                const payload = JSON.parse(result.content[0].text);
+                assert.match(payload.purpose, /Datalust Seq/i);
+                assert(
+                    payload.recommendedProcess.includes(
+                        "Use seq_api_catalog to find an official route template before seq_api_request.",
+                    ),
+                );
+                assert(
+                    payload.starterTools.includes("seq_starter_events_search"),
+                );
+                assert.equal(payload.safetyLimits.maxEventOrQueryCount, 500);
+                assert.equal(
+                    payload.examples[0].tool,
+                    "seq_starter_events_search",
+                );
+            },
+        );
+    } finally {
+        await fakeSeq.close();
+    }
+});
+
 test("seq_api_request reports missing path params as a validation error", async () => {
     const fakeSeq = await startFakeSeqServer();
 

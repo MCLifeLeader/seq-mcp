@@ -8,9 +8,11 @@ meta:
         - datalust
         - opentelemetry
         - logs
+        - observability
+        - troubleshooting
 about:
     title: Seq OTel MCP Server
-    description: MCP server for querying and operating on Datalust Seq telemetry and server APIs.
+    description: Agent-friendly MCP server for querying Datalust Seq logs, OpenTelemetry data, diagnostics, signals, dashboards, alerts, and official Seq API routes with bounded requests.
     icon: https://raw.githubusercontent.com/MCLifeLeader/seq-mcp/main/assets/seq-otel-icon.svg
 source:
     type: github
@@ -29,7 +31,7 @@ config:
                     description: Seq base URL (recommended) or API URL (for example https://seq.example.com).
             required:
                 - seq_url
-    description: Configure connection settings for the target Seq instance.
+    description: Configure connection settings for the target Seq instance. Agents should begin with seq_agent_guide, seq_connection_test, and seq_starter_overview before using advanced API routes.
     env:
         - name: SEQ_URL
           description: URL for the target Seq server root (recommended) or /api endpoint.

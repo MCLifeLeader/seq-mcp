@@ -15,6 +15,7 @@
       "properties": {
         "includeApiInfo": {
           "type": "boolean",
+          "default": true,
           "description": "When true, also fetch the Seq API root document."
         }
       }

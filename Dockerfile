@@ -17,9 +17,9 @@ ARG IMAGE_VERSION=none
 ARG VCS_REF=unknown
 ARG BUILD_DATE=unknown
 
-LABEL org.opencontainers.image.title="mcp/seq-otel" \
+LABEL org.opencontainers.image.title="mcp/seq-otlp" \
       org.opencontainers.image.description="Unofficial Standalone MCP server for Datalust Seq OpenTelemetry access" \
-      org.opencontainers.image.url="https://hub.docker.com/r/mcp/seq-otel" \
+      org.opencontainers.image.url="https://hub.docker.com/r/mcp/seq-otlp" \
       org.opencontainers.image.documentation="https://github.com/MCLifeLeader/seq-mcp/blob/main/README.md" \
       org.opencontainers.image.source="https://github.com/MCLifeLeader/seq-mcp" \
       org.opencontainers.image.licenses="MIT" \

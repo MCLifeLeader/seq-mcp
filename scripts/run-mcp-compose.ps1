@@ -149,17 +149,17 @@ if (-not $env:SEQ_API_KEY) {
     throw "SEQ_API_KEY is required. Provide -SeqApiKey, set SEQ_API_KEY, or add SEQ_API_KEY to .env"
 }
 
-docker compose -f $ComposeFile images -q seq-otel-mcp *> $null
+docker compose -f $ComposeFile images -q seq-otlp-mcp *> $null
 $imageId = $null
 if ($LASTEXITCODE -eq 0) {
-    $imageId = docker compose -f $ComposeFile images -q seq-otel-mcp
+    $imageId = docker compose -f $ComposeFile images -q seq-otlp-mcp
 }
 $imageExists = -not [string]::IsNullOrWhiteSpace($imageId)
 
-Remove-ExistingComposeServiceContainers $ComposeFile "seq-otel-mcp"
+Remove-ExistingComposeServiceContainers $ComposeFile "seq-otlp-mcp"
 
 if ($Build.IsPresent -or -not $imageExists) {
-    docker compose -f $ComposeFile build seq-otel-mcp
+    docker compose -f $ComposeFile build seq-otlp-mcp
     if ($LASTEXITCODE -ne 0) {
         throw "docker compose build failed."
     }
@@ -168,8 +168,8 @@ if ($Build.IsPresent -or -not $imageExists) {
 Write-Host "Starting MCP server over stdio using docker compose..."
 if ($ContainerName) {
     Remove-ContainerByNameIfPresent $ContainerName
-    docker compose -f $ComposeFile run --rm -i --name $ContainerName seq-otel-mcp
+    docker compose -f $ComposeFile run --rm -i --name $ContainerName seq-otlp-mcp
 }
 else {
-    docker compose -f $ComposeFile run --rm -i seq-otel-mcp
+    docker compose -f $ComposeFile run --rm -i seq-otlp-mcp
 }

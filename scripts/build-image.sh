@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otel}"
+IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otlp}"
 TAG="${TAG:-}"
 LATEST_TAG="${LATEST_TAG:-}"
 REGISTRY="${REGISTRY:-}"
@@ -25,7 +25,7 @@ usage() {
 Usage: scripts/build-image.sh [options]
 
 Options:
-  --image-name <name>   Image name (default: mcp/seq-otel)
+  --image-name <name>   Image name (default: mcp/seq-otlp)
   --tag <tag>           Image tag (optional; default Docker behavior is latest)
   --latest-tag <tag>    Additional tag to apply (optional)
   --registry <registry> Optional registry prefix (example: ghcr.io/my-org)

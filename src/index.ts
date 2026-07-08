@@ -20,7 +20,7 @@ let config: ServerConfig | undefined;
 let seq: SeqClient | undefined;
 
 const server = new McpServer({
-    name: "mcp-seq-otel",
+    name: "mcp-seq-otlp",
     version: "0.3.1",
     description:
         "Agent-friendly MCP server for bounded Datalust Seq log, OpenTelemetry, diagnostics, and official API access.",
@@ -1182,19 +1182,19 @@ function writeFatalError(
 }
 
 process.on("uncaughtException", (error: Error) => {
-    writeFatalError("mcp-seq-otel uncaught exception", error, () => {
+    writeFatalError("mcp-seq-otlp uncaught exception", error, () => {
         process.exit(1);
     });
 });
 
 process.on("unhandledRejection", (reason: unknown) => {
-    writeFatalError("mcp-seq-otel unhandled rejection", reason, () => {
+    writeFatalError("mcp-seq-otlp unhandled rejection", reason, () => {
         process.exit(1);
     });
 });
 
 start().catch((error: unknown) => {
-    writeFatalError("mcp-seq-otel startup error", error, () => {
+    writeFatalError("mcp-seq-otlp startup error", error, () => {
         process.exit(1);
     });
 });

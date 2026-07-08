@@ -1,4 +1,4 @@
-name: seq-otlp
+﻿name: seq-otlp
 type: server
 image: "mcp/seq-otlp:latest"
 description: Unofficial standalone MCP server for Datalust Seq OpenTelemetry access.

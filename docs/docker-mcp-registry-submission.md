@@ -12,7 +12,7 @@ Use this checklist before opening a PR to `https://github.com/docker/mcp-registr
 
 - `catalog/server.yaml`
 - `catalog/tools.json`
-- `assets/seq-otel-icon.svg`
+- `assets/seq-otlp-icon.svg`
 - `README.md`
 - `.dockerhub-readme.md`
 - Wiki entry point: https://github.com/MCLifeLeader/seq-mcp/wiki
@@ -20,7 +20,7 @@ Use this checklist before opening a PR to `https://github.com/docker/mcp-registr
 ## Preflight (Required)
 
 1. Confirm image is publicly pullable.
-    - Example: `mcp/seq-otel` (implicit latest) or a versioned tag.
+    - Example: `mcp/seq-otlp` (implicit latest) or a versioned tag.
 
 2. Verify `catalog/server.yaml`.
     - `image` is correct and pullable.

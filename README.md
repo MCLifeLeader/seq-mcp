@@ -1,4 +1,4 @@
-# mcp-seq-otel
+# mcp-seq-otlp
 
 Standalone MCP server that gives AI agents controlled API access to a user-owned Datalust Seq instance.
 
@@ -176,7 +176,7 @@ Docker Hub documentation assets in this repo:
 Build image:
 
 ```bash
-docker build -t mcp/seq-otel .
+docker build -t mcp/seq-otlp .
 ```
 
 Run via Docker Compose (recommended for MCP stdio):
@@ -198,7 +198,7 @@ Compose run behavior:
 - Value precedence is: explicit script args -> existing environment variables -> `.env`.
 - If the target `.env` is missing, scripts create a generic template `.env` automatically.
 - When that generated generic template is in use, ensure `SEQ_URL` and `SEQ_API_KEY` are resolved via script args, existing environment variables, or a populated `.env` file.
-- `MCP_IMAGE_TAG` is optional; when empty, Compose uses an untagged image reference (`mcp/seq-otel`).
+- `MCP_IMAGE_TAG` is optional; when empty, Compose uses an untagged image reference (`mcp/seq-otlp`).
 - Scripts check image availability through compose service metadata and auto-build if the selected tag is not available.
 - By default, no container name is specified, so Docker auto-generates a random name.
 - You can override container name with `-ContainerName` (PowerShell) or `--container-name` (Bash).
@@ -226,8 +226,8 @@ Script intent:
 
 Default build behavior:
 
-- When you run the build script without `--tag` or `-Tag`, it builds the named image `mcp/seq-otel`, which Docker treats as `mcp/seq-otel:latest`.
-- If you want a different reusable image such as `mcp/seq-otel:v0.3.1`, pass an explicit tag.
+- When you run the build script without `--tag` or `-Tag`, it builds the named image `mcp/seq-otlp`, which Docker treats as `mcp/seq-otlp:latest`.
+- If you want a different reusable image such as `mcp/seq-otlp:v0.3.1`, pass an explicit tag.
 - `--latest-tag` or `-LatestTag` remains optional and adds an additional tag alongside the primary image tag.
 
 Build and push to registry (pullable by other Docker hosts):
@@ -251,13 +251,13 @@ Build and export tar (loadable with `docker load`):
 PowerShell:
 
 ```powershell
-./build-docker-image.ps1 -SaveTar ./mcp-seq-otel.tar
+./build-docker-image.ps1 -SaveTar ./mcp-seq-otlp.tar
 ```
 
 Bash:
 
 ```bash
-./build-docker-image.sh --save-tar ./mcp-seq-otel.tar
+./build-docker-image.sh --save-tar ./mcp-seq-otlp.tar
 ```
 
 Run against local Seq:
@@ -266,7 +266,7 @@ Run against local Seq:
 docker run --rm -i \
   -e SEQ_URL=http://host.docker.internal:10150 \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel
+    mcp/seq-otlp
 ```
 
 Run against FQDN Seq:
@@ -275,17 +275,17 @@ Run against FQDN Seq:
 docker run --rm -i \
   -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel
+    mcp/seq-otlp
 ```
 
 Run with Podman:
 
 ```bash
-podman build -t mcp/seq-otel .
+podman build -t mcp/seq-otlp .
 podman run --rm -i \
   -e SEQ_URL=https://seq.example.com \
   -e SEQ_API_KEY=your-key \
-  mcp/seq-otel
+    mcp/seq-otlp
 ```
 
 The container startup contract requires both variables to be present:
@@ -311,12 +311,12 @@ This command uses the current `SEQ_URL` and `SEQ_API_KEY` to compare live advert
 
 ## Copy/Paste MCP Config (Codex and VS Code)
 
-Assumes the image already exists (`mcp/seq-otel`).
+Assumes the image already exists (`mcp/seq-otlp`).
 
 ```json
 {
     "mcpServers": {
-        "seq-otel": {
+        "seq-otlp": {
             "type": "stdio",
             "command": "docker",
             "args": [
@@ -327,7 +327,7 @@ Assumes the image already exists (`mcp/seq-otel`).
                 "SEQ_URL=http://host.docker.internal:10150",
                 "-e",
                 "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
-                "mcp/seq-otel"
+                "mcp/seq-otlp"
             ]
         }
     }
@@ -340,7 +340,7 @@ This repo includes a catalog-ready server definition in:
 
 - `catalog/server.yaml`
 - `catalog/tools.json`
-- `assets/seq-otel-icon.svg`
+- `assets/seq-otlp-icon.svg`
 
 `catalog/server.yaml` declares:
 
@@ -361,7 +361,7 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
 ```json
 {
     "mcpServers": {
-        "seq-otel": {
+        "seq-otlp": {
             "type": "stdio",
             "command": "docker",
             "args": [
@@ -372,7 +372,7 @@ Use a command-based MCP client entry that launches the container with stdin/stdo
                 "SEQ_URL=https://seq.example.com",
                 "-e",
                 "SEQ_API_KEY=<YOUR_SEQ_API_KEY>",
-                "mcp/seq-otel"
+                "mcp/seq-otlp"
             ]
         }
     }

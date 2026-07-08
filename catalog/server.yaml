@@ -1,5 +1,5 @@
-name: seq-otel
-image: mcp/seq-otel
+name: seq-otlp
+image: mcp/seq-otlp
 type: server
 meta:
     category: observability
@@ -11,9 +11,9 @@ meta:
         - observability
         - troubleshooting
 about:
-    title: Seq OTel MCP Server
+    title: Seq OTLP MCP Server
     description: Agent-friendly MCP server for querying Datalust Seq logs, OpenTelemetry data, diagnostics, signals, dashboards, alerts, and official Seq API routes with bounded requests.
-    icon: https://raw.githubusercontent.com/MCLifeLeader/seq-mcp/main/assets/seq-otel-icon.svg
+    icon: https://raw.githubusercontent.com/MCLifeLeader/seq-mcp/main/assets/seq-otlp-icon.svg
 source:
     type: github
     url: https://github.com/MCLifeLeader/seq-mcp
@@ -36,9 +36,9 @@ config:
         - name: SEQ_URL
           description: URL for the target Seq server root (recommended) or /api endpoint.
           example: https://seq.example.com
-          value: "{{seq-otel.seq_url}}"
+          value: "{{seq-otlp.seq_url}}"
     secrets:
-        - name: seq-otel.seq_api_key
+        - name: seq-otlp.seq_api_key
           env: SEQ_API_KEY
           description: Seq API key with required permissions for selected operations.
           example: <SEQ_API_KEY>

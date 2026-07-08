@@ -11,7 +11,7 @@ meta:
         - observability
         - troubleshooting
 about:
-    title: Seq OTel MCP Server
+    title: Seq OTLP MCP Server
     description: Agent-friendly MCP server for querying Datalust Seq logs, OpenTelemetry data, diagnostics, signals, dashboards, alerts, and official Seq API routes with bounded requests.
     icon: https://raw.githubusercontent.com/MCLifeLeader/seq-mcp/main/assets/seq-otlp-icon.svg
 source:

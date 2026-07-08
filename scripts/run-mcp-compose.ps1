@@ -29,6 +29,13 @@ function Require-Command([string]$Name) {
 
 Require-Command "docker"
 
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$manifestScript = Join-Path $PSScriptRoot "update-catalog-manifests.ps1"
+
+if (-not (Test-Path -Path $manifestScript -PathType Leaf)) {
+    throw "Catalog manifest generator not found: $manifestScript"
+}
+
 function Import-DotEnvIfPresent([string]$Path) {
     if (-not (Test-Path $Path)) {
         return
@@ -111,6 +118,14 @@ function Remove-ContainerByNameIfPresent([string]$Name) {
     }
 }
 
+function Get-FileHashValue([string]$Path) {
+    if (-not (Test-Path -Path $Path -PathType Leaf)) {
+        return ""
+    }
+
+    return (Get-FileHash -Path $Path -Algorithm SHA256).Hash
+}
+
 if ($SeqUrl) {
     $env:SEQ_URL = $SeqUrl
 }
@@ -137,6 +152,17 @@ $usingGenericDotEnv = Select-String -Path $dotenvPath -Pattern '^\s*MCP_GENERIC_
 
 Import-DotEnvIfPresent $dotenvPath
 
+$toolkitManifestPath = Join-Path $repoRoot "catalog\docker-mcp-toolkit.yaml"
+$toolkitManifestHashBefore = Get-FileHashValue $toolkitManifestPath
+try {
+    & $manifestScript -ImageReference "mcp/seq-otlp:latest" -Root $repoRoot
+}
+catch {
+    throw "Catalog manifest generation failed. $($_.Exception.Message)"
+}
+$toolkitManifestHashAfter = Get-FileHashValue $toolkitManifestPath
+$toolkitManifestChanged = $toolkitManifestHashBefore -ne $toolkitManifestHashAfter
+
 if ($usingGenericDotEnv -and (-not $env:SEQ_URL -or -not $env:SEQ_API_KEY)) {
     throw "This run is using a generated generic .env template at '$dotenvPath'. Ensure SEQ_URL and SEQ_API_KEY are configured via environment variables, a populated .env, or script arguments."
 }
@@ -158,7 +184,7 @@ $imageExists = -not [string]::IsNullOrWhiteSpace($imageId)
 
 Remove-ExistingComposeServiceContainers $ComposeFile "seq-otlp-mcp"
 
-if ($Build.IsPresent -or -not $imageExists) {
+if ($Build.IsPresent -or -not $imageExists -or $toolkitManifestChanged) {
     docker compose -f $ComposeFile build seq-otlp-mcp
     if ($LASTEXITCODE -ne 0) {
         throw "docker compose build failed."

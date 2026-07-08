@@ -12,6 +12,7 @@ Use this checklist before opening a PR to `https://github.com/docker/mcp-registr
 
 - `catalog/server.yaml`
 - `catalog/tools.json`
+- `catalog/docker-mcp-toolkit.yaml`
 - `assets/seq-otlp-icon.svg`
 - `README.md`
 - `.dockerhub-readme.md`
@@ -33,12 +34,19 @@ Use this checklist before opening a PR to `https://github.com/docker/mcp-registr
     - `inputSchema` values are valid JSON schema.
     - Representative public tools are present.
 
-4. Validate this repo build and contract.
+4. Verify `catalog/docker-mcp-toolkit.yaml`.
+    - Entry uses the pullable Docker image reference.
+    - `SEQ_URL` is mapped as user configuration.
+    - `SEQ_API_KEY` is mapped as a secret.
+    - Raw README URL resolves without requiring GitHub HTML scraping.
+
+5. Validate this repo build and contract.
     - `npm run check`
     - `npm run build`
-    - Build image and run a startup smoke test with required env vars.
+    - `./build-docker-image.ps1` or `./build-docker-image.sh`
+    - Run a startup smoke test with required env vars.
 
-5. Re-check upstream docs/schemas on submission day.
+6. Re-check upstream docs/schemas on submission day.
     - Registry requirements can change.
 
 ## PR Content Checklist

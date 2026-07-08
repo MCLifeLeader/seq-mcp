@@ -21,7 +21,7 @@ let seq: SeqClient | undefined;
 
 const server = new McpServer({
     name: "mcp-seq-otlp",
-    version: "0.3.1",
+    version: "0.4.0",
     description:
         "Agent-friendly MCP server for bounded Datalust Seq log, OpenTelemetry, diagnostics, and official API access.",
 });

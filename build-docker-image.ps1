@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$ImageName = "mcp/seq-otel",
+    [string]$ImageName = "mcp/seq-otlp",
 
     [Parameter()]
     [string]$Tag = "",

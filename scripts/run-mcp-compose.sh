@@ -187,22 +187,22 @@ if [[ -z "${SEQ_API_KEY:-}" ]]; then
 fi
 
 if [[ "$BUILD" != "true" ]]; then
-  IMAGE_ID="$(docker compose -f "$COMPOSE_FILE" images -q seq-otel-mcp 2>/dev/null || true)"
+  IMAGE_ID="$(docker compose -f "$COMPOSE_FILE" images -q seq-otlp-mcp 2>/dev/null || true)"
   if [[ -z "$IMAGE_ID" ]]; then
     BUILD="true"
   fi
 fi
 
-remove_existing_compose_service_containers "$COMPOSE_FILE" "seq-otel-mcp"
+remove_existing_compose_service_containers "$COMPOSE_FILE" "seq-otlp-mcp"
 
 if [[ "$BUILD" == "true" ]]; then
-  docker compose -f "$COMPOSE_FILE" build seq-otel-mcp
+  docker compose -f "$COMPOSE_FILE" build seq-otlp-mcp
 fi
 
 echo "Starting MCP server over stdio using docker compose..."
 if [[ -n "$CONTAINER_NAME" ]]; then
   remove_container_by_name_if_present "$CONTAINER_NAME"
-  exec docker compose -f "$COMPOSE_FILE" run --rm -i --name "$CONTAINER_NAME" seq-otel-mcp
+  exec docker compose -f "$COMPOSE_FILE" run --rm -i --name "$CONTAINER_NAME" seq-otlp-mcp
 else
-  exec docker compose -f "$COMPOSE_FILE" run --rm -i seq-otel-mcp
+  exec docker compose -f "$COMPOSE_FILE" run --rm -i seq-otlp-mcp
 fi

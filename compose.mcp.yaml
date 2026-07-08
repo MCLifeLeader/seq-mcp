@@ -1,6 +1,6 @@
 services:
-    seq-otel-mcp:
-        image: mcp/seq-otel${MCP_IMAGE_TAG:+:${MCP_IMAGE_TAG}}
+    seq-otlp-mcp:
+        image: mcp/seq-otlp${MCP_IMAGE_TAG:+:${MCP_IMAGE_TAG}}
         build:
             context: .
             dockerfile: Dockerfile

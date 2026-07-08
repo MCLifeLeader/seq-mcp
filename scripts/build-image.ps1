@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$ImageName = $(if ([string]::IsNullOrWhiteSpace($env:IMAGE_NAME)) { "mcp/seq-otel" } else { $env:IMAGE_NAME }),
+    [string]$ImageName = $(if ([string]::IsNullOrWhiteSpace($env:IMAGE_NAME)) { "mcp/seq-otlp" } else { $env:IMAGE_NAME }),
 
     [Parameter()]
     [string]$Tag = $(if ([string]::IsNullOrWhiteSpace($env:TAG)) { "" } else { $env:TAG }),

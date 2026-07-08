@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+MANIFEST_SCRIPT="${SCRIPT_DIR}/update-catalog-manifests.ps1"
+
 IMAGE_NAME="${IMAGE_NAME:-mcp/seq-otlp}"
 TAG="${TAG:-}"
 LATEST_TAG="${LATEST_TAG:-}"
@@ -33,6 +37,88 @@ Options:
   --save-tar <path>     Save image archive to tar file
   -h, --help            Show help
 EOF
+}
+
+generate_catalog_manifest() {
+  local powershell_command=()
+  local powershell_path=""
+  local powershell_is_windows=false
+  local manifest_arg="$MANIFEST_SCRIPT"
+  local root_arg="$REPO_ROOT"
+
+  if [[ ! -f "$MANIFEST_SCRIPT" ]]; then
+    echo "Catalog manifest generator not found: ${MANIFEST_SCRIPT}" >&2
+    exit 1
+  fi
+
+  if command -v pwsh >/dev/null 2>&1; then
+    powershell_path="$(command -v pwsh)"
+    powershell_command=(pwsh -NoProfile -ExecutionPolicy Bypass)
+  elif command -v powershell.exe >/dev/null 2>&1; then
+    powershell_path="$(command -v powershell.exe)"
+    powershell_command=(powershell.exe -NoProfile -ExecutionPolicy Bypass)
+  elif command -v powershell >/dev/null 2>&1; then
+    powershell_path="$(command -v powershell)"
+    powershell_command=(powershell -NoProfile -ExecutionPolicy Bypass)
+  else
+    echo "PowerShell is required to generate catalog manifests from Bash." >&2
+    exit 1
+  fi
+
+  if [[ "$powershell_path" == *.exe ]]; then
+    powershell_is_windows=true
+  fi
+
+  if [[ "$powershell_is_windows" == "true" ]]; then
+    manifest_arg="$(to_windows_path "$MANIFEST_SCRIPT")"
+    root_arg="$(to_windows_path "$REPO_ROOT")"
+  fi
+
+  "${powershell_command[@]}" -File "$manifest_arg" \
+    -ImageReference "mcp/seq-otlp:latest" \
+    -Root "$root_arg"
+}
+
+to_windows_path() {
+  local path="$1"
+  local drive=""
+  local rest=""
+
+  case "$path" in
+    /mnt/[A-Za-z]/*)
+      drive="$(printf '%s' "${path:5:1}" | tr '[:lower:]' '[:upper:]')"
+      rest="${path:7}"
+      rest="${rest//\//\\}"
+      printf '%s:\\%s' "$drive" "$rest"
+      ;;
+    /[A-Za-z]/*)
+      drive="$(printf '%s' "${path:1:1}" | tr '[:lower:]' '[:upper:]')"
+      rest="${path:3}"
+      rest="${rest//\//\\}"
+      printf '%s:\\%s' "$drive" "$rest"
+      ;;
+    *)
+      printf '%s' "$path"
+      ;;
+  esac
+}
+
+validate_built_image() {
+  local image_ref="$1"
+  local label
+
+  label="$(docker image inspect "$image_ref" --format '{{ index .Config.Labels "io.modelcontextprotocol.server.name" }}')"
+  if [[ "$label" != "seq-otlp" ]]; then
+    echo "Built image is missing io.modelcontextprotocol.server.name=seq-otlp." >&2
+    exit 1
+  fi
+
+  docker run --rm --entrypoint sh "$image_ref" -c \
+    "test -f /app/catalog/server.yaml && \
+     test -f /app/catalog/tools.json && \
+     test -f /app/catalog/docker-mcp-toolkit.yaml && \
+     test -f /app/assets/seq-otlp-icon.svg && \
+     test -f /app/README.md"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -111,6 +197,8 @@ fi
 
 BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
+generate_catalog_manifest
+
 if [[ -n "$LOCAL_IMAGE" ]]; then
   stop_running_containers_for_image "$LOCAL_IMAGE"
 fi
@@ -138,6 +226,9 @@ fi
 BUILD_ARGS+=(.)
 
 docker "${BUILD_ARGS[@]}"
+
+echo "Validating image catalog manifests: ${FULL_IMAGE}"
+validate_built_image "$FULL_IMAGE"
 
 if [[ "$PUSH" == "true" ]]; then
   echo "Pushing image: ${FULL_IMAGE}"

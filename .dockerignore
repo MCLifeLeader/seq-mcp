@@ -12,8 +12,13 @@ CODEOWNERS
 CONTRIBUTING.md
 LICENSE
 README.md
-assets
-catalog
 docs
 scripts
 test
+!README.md
+assets/*
+!assets/seq-otlp-icon.svg
+catalog/*
+!catalog/server.yaml
+!catalog/tools.json
+!catalog/docker-mcp-toolkit.yaml

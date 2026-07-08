@@ -29,6 +29,13 @@ function Require-Command([string]$Name) {
 
 Require-Command "docker"
 
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$manifestScript = Join-Path $PSScriptRoot "update-catalog-manifests.ps1"
+
+if (-not (Test-Path -Path $manifestScript -PathType Leaf)) {
+    throw "Catalog manifest generator not found: $manifestScript"
+}
+
 function Stop-RunningContainersForImage([string]$ImageRef) {
     $containerIds = docker ps -q --filter "ancestor=$ImageRef"
     if ($LASTEXITCODE -ne 0) {
@@ -99,6 +106,13 @@ if (Get-Command git -ErrorAction SilentlyContinue) {
 $buildDate = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
 $pushEnabled = $Push.IsPresent -or $env:PUSH -eq "true"
 
+try {
+    & $manifestScript -ImageReference "mcp/seq-otlp:latest" -Root $repoRoot
+}
+catch {
+    throw "Catalog manifest generation failed. $($_.Exception.Message)"
+}
+
 Stop-RunningContainersForImage $localImage
 if (-not [string]::IsNullOrWhiteSpace($fullImage) -and $fullImage -ne $localImage) {
     Stop-RunningContainersForImage $fullImage
@@ -126,6 +140,22 @@ docker @buildArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "Docker build failed."
+}
+
+Write-Host "Validating image catalog manifests: $fullImage"
+$labelJson = docker image inspect $fullImage --format '{{ json .Config.Labels }}'
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to inspect built image labels."
+}
+
+$labelValue = ($labelJson | ConvertFrom-Json).'io.modelcontextprotocol.server.name'
+if ($labelValue -ne "seq-otlp") {
+    throw "Built image is missing io.modelcontextprotocol.server.name=seq-otlp."
+}
+
+docker run --rm --entrypoint sh $fullImage -c "test -f /app/catalog/server.yaml && test -f /app/catalog/tools.json && test -f /app/catalog/docker-mcp-toolkit.yaml && test -f /app/assets/seq-otlp-icon.svg && test -f /app/README.md"
+if ($LASTEXITCODE -ne 0) {
+    throw "Built image is missing one or more catalog manifest files."
 }
 
 if ($pushEnabled) {

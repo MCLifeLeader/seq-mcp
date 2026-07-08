@@ -331,6 +331,9 @@ indent_size=2
 indent_style=space
 indent_size=2
 
+[{package.json,package-lock.json}]
+end_of_line=lf
+
 [*.{appxmanifest,asax,ascx,aspx,build,cshtml,dtd,fs,fsi,fsscript,fsx,master,ml,mli,nuspec,razor,resw,resx,skin,vb,xaml,xamlx,xoml,xsd}]
 indent_style=space
 indent_size=4

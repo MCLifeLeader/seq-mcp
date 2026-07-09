@@ -1,6 +1,6 @@
 {
   "name": "mcp-seq-otlp",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Standalone MCP server for querying Datalust Seq. Home page for Datalust Seq can be found at https://datalust.co/",
   "type": "module",
   "main": "dist/index.js",

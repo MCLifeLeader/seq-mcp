@@ -35,6 +35,9 @@ CATALOG_PATH="${CATALOG_DIR}/seq-otlp.yaml"
 
 mkdir -p "${CATALOG_DIR}"
 cp "${SCRIPT_DIR}/catalog/docker-mcp-toolkit.yaml" "${CATALOG_PATH}"
-docker mcp catalog server add mcp/docker-mcp-catalog:latest --server file://seq-otlp.yaml
+(
+  cd "${CATALOG_DIR}"
+  docker mcp catalog server add mcp/docker-mcp-catalog:latest --server file://seq-otlp.yaml
+)
 
 echo "Done: build, image validation, and local Docker MCP catalog refresh completed."

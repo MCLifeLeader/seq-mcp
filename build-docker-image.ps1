@@ -52,9 +52,15 @@ function Install-DockerMcpCatalogEntry([string]$ManifestPath) {
     New-Item -ItemType Directory -Force -Path $catalogDir | Out-Null
     Copy-Item -LiteralPath $ManifestPath -Destination $catalogPath -Force
 
-    docker mcp catalog server add mcp/docker-mcp-catalog:latest --server file://seq-otlp.yaml
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to install seq-otlp into the local Docker MCP catalog."
+    Push-Location -LiteralPath $catalogDir
+    try {
+        docker mcp catalog server add mcp/docker-mcp-catalog:latest --server file://seq-otlp.yaml
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to install seq-otlp into the local Docker MCP catalog."
+        }
+    }
+    finally {
+        Pop-Location
     }
 }
 

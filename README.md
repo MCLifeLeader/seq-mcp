@@ -227,7 +227,7 @@ Script intent:
 Default build behavior:
 
 - When you run the build script without `--tag` or `-Tag`, it builds the named image `mcp/seq-otlp`, which Docker treats as `mcp/seq-otlp:latest`.
-- If you want a different reusable image such as `mcp/seq-otlp:v0.4.0`, pass an explicit tag.
+- If you want a different reusable image such as `mcp/seq-otlp:v0.4.1`, pass an explicit tag.
 - `--latest-tag` or `-LatestTag` remains optional and adds an additional tag alongside the primary image tag.
 - To skip local Docker MCP catalog refresh, pass `-SkipDockerMcpCatalogInstall` in PowerShell or `--skip-docker-mcp-catalog-install` in Bash.
 
@@ -236,13 +236,13 @@ Build and push to registry (pullable by other Docker hosts):
 PowerShell:
 
 ```powershell
-./build-docker-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.4.0 -Push
+./build-docker-image.ps1 -Registry ghcr.io/mclifeleader -Tag v0.4.1 -Push
 ```
 
 Bash:
 
 ```bash
-./build-docker-image.sh --registry ghcr.io/mclifeleader --tag v0.4.0 --push
+./build-docker-image.sh --registry ghcr.io/mclifeleader --tag v0.4.1 --push
 ```
 
 By default, the build scripts do not apply an additional tag. If you want one, pass it explicitly with PowerShell `-LatestTag <tag>` or Bash `--latest-tag <tag>`.

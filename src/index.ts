@@ -26,6 +26,8 @@ const server = new McpServer({
         "Agent-friendly MCP server for bounded Datalust Seq log, OpenTelemetry, diagnostics, and official API access.",
 });
 
+let shutdownPromise: Promise<void> | undefined;
+
 const MAX_QUERY_ENTRIES = 25;
 const MAX_PATH_PARAM_ENTRIES = 10;
 const MAX_STRING_VALUE_LENGTH = 2_048;
@@ -1171,6 +1173,19 @@ async function start(): Promise<void> {
     await server.connect(transport);
 }
 
+async function shutdown(exitCode = 0): Promise<void> {
+    if (!shutdownPromise) {
+        shutdownPromise = (async () => {
+            await server.close();
+            process.stdin.pause();
+            process.stdin.destroy();
+            process.exitCode = exitCode;
+        })();
+    }
+
+    return shutdownPromise;
+}
+
 function writeFatalError(
     prefix: string,
     error: unknown,
@@ -1180,6 +1195,18 @@ function writeFatalError(
         error instanceof Error ? (error.stack ?? error.message) : String(error);
     process.stderr.write(`${prefix}: ${message}\n`, onWritten);
 }
+
+function requestShutdown(): void {
+    void shutdown().catch((error: unknown) => {
+        writeFatalError("mcp-seq-otlp shutdown error", error, () => {
+            process.exit(1);
+        });
+    });
+}
+
+process.stdin.once("end", requestShutdown);
+process.once("SIGTERM", requestShutdown);
+process.once("SIGINT", requestShutdown);
 
 process.on("uncaughtException", (error: Error) => {
     writeFatalError("mcp-seq-otlp uncaught exception", error, () => {

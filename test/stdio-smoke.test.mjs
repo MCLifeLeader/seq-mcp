@@ -3,8 +3,102 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import process from "node:process";
 import { once } from "node:events";
+import { spawn } from "node:child_process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
+
+async function waitForChildExit(child, timeoutMs = 5_000) {
+    let timeout;
+    try {
+        return await Promise.race([
+            once(child, "close"),
+            new Promise((_, reject) => {
+                timeout = setTimeout(() => {
+                    reject(
+                        new Error(
+                            `Child process did not exit within ${timeoutMs}ms.`,
+                        ),
+                    );
+                }, timeoutMs);
+            }),
+        ]);
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+function spawnMcpServer() {
+    return spawn(process.execPath, ["dist/index.js"], {
+        cwd: process.cwd(),
+        env: {
+            ...process.env,
+            SEQ_URL: "http://127.0.0.1:65535",
+            SEQ_API_KEY: "test-api-key",
+        },
+        stdio: ["pipe", "pipe", "pipe"],
+    });
+}
+
+test("stdio MCP server exits cleanly when its client closes stdin", async () => {
+    const child = spawnMcpServer();
+
+    try {
+        await once(child, "spawn");
+        child.stdin.end();
+
+        const [code, signal] = await waitForChildExit(child);
+        assert.equal(code, 0);
+        assert.equal(signal, null);
+    } finally {
+        if (child.exitCode === null && child.signalCode === null) {
+            child.kill("SIGKILL");
+        }
+    }
+});
+
+test(
+    "stdio MCP server exits cleanly on SIGTERM",
+    {
+        skip:
+            process.platform === "win32"
+                ? "Windows terminates child processes directly for SIGTERM."
+                : false,
+    },
+    async () => {
+        const child = spawnMcpServer();
+
+        try {
+            await once(child, "spawn");
+            const initialized = once(child.stdout, "data");
+            child.stdin.write(
+                `${JSON.stringify({
+                    jsonrpc: "2.0",
+                    id: 1,
+                    method: "initialize",
+                    params: {
+                        protocolVersion: LATEST_PROTOCOL_VERSION,
+                        capabilities: {},
+                        clientInfo: {
+                            name: "shutdown-test",
+                            version: "0.0.0",
+                        },
+                    },
+                })}\n`,
+            );
+            await initialized;
+            child.kill("SIGTERM");
+
+            const [code, signal] = await waitForChildExit(child);
+            assert.equal(code, 0);
+            assert.equal(signal, null);
+        } finally {
+            if (child.exitCode === null && child.signalCode === null) {
+                child.kill("SIGKILL");
+            }
+        }
+    },
+);
 
 async function startFakeSeqServer() {
     const requests = [];

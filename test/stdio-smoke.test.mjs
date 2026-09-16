@@ -2,30 +2,57 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import process from "node:process";
-import { once } from "node:events";
+import { EventEmitter, once } from "node:events";
 import { spawn } from "node:child_process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
 
-async function waitForChildExit(child, timeoutMs = 5_000) {
-    let timeout;
-    try {
-        return await Promise.race([
-            once(child, "close"),
-            new Promise((_, reject) => {
-                timeout = setTimeout(() => {
-                    reject(
-                        new Error(
-                            `Child process did not exit within ${timeoutMs}ms.`,
-                        ),
-                    );
-                }, timeoutMs);
-            }),
-        ]);
-    } finally {
-        clearTimeout(timeout);
+function waitForEvent(emitter, event, timeoutMessage, timeoutMs = 5_000) {
+    return new Promise((resolve, reject) => {
+        const cleanup = () => {
+            clearTimeout(timeout);
+            emitter.off(event, onEvent);
+            emitter.off("error", onError);
+        };
+        const onEvent = (...args) => {
+            cleanup();
+            resolve(args);
+        };
+        const onError = (error) => {
+            cleanup();
+            reject(error);
+        };
+        const timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error(timeoutMessage));
+        }, timeoutMs);
+
+        emitter.once(event, onEvent);
+        emitter.once("error", onError);
+    });
+}
+
+function waitForChildExit(child, timeoutMs = 5_000) {
+    return waitForEvent(
+        child,
+        "close",
+        `Child process did not exit within ${timeoutMs}ms.`,
+        timeoutMs,
+    );
+}
+
+function waitForChildInitialization(child, timeoutMs = 5_000) {
+    if (!child.stdout) {
+        throw new Error("Child process stdout is not available.");
     }
+
+    return waitForEvent(
+        child.stdout,
+        "data",
+        `Child process did not initialize within ${timeoutMs}ms.`,
+        timeoutMs,
+    );
 }
 
 function spawnMcpServer() {
@@ -39,6 +66,17 @@ function spawnMcpServer() {
         stdio: ["pipe", "pipe", "pipe"],
     });
 }
+
+test("bounded event waits reject and remove listeners on timeout", async () => {
+    const emitter = new EventEmitter();
+
+    await assert.rejects(
+        waitForEvent(emitter, "ready", "Timed out waiting for readiness.", 10),
+        /Timed out waiting for readiness/,
+    );
+    assert.equal(emitter.listenerCount("ready"), 0);
+    assert.equal(emitter.listenerCount("error"), 0);
+});
 
 test("stdio MCP server exits cleanly when its client closes stdin", async () => {
     const child = spawnMcpServer();
@@ -70,7 +108,7 @@ test(
 
         try {
             await once(child, "spawn");
-            const initialized = once(child.stdout, "data");
+            const initialized = waitForChildInitialization(child);
             child.stdin.write(
                 `${JSON.stringify({
                     jsonrpc: "2.0",

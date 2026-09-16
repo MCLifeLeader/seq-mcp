@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-ARG NPM_VERSION=11.13.0
+ARG NPM_VERSION=11.19.0
 
-FROM node:24.15.0-alpine AS build
+FROM node:24.21.0-alpine AS build
 WORKDIR /app
 ARG NPM_VERSION
 
@@ -14,7 +14,7 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:24.15.0-alpine AS runtime
+FROM node:24.21.0-alpine AS runtime
 WORKDIR /app
 ARG NPM_VERSION
 

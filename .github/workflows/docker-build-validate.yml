@@ -151,6 +151,9 @@ jobs:
                     -e SEQ_URL=http://example.com \
                     -e SEQ_API_KEY=ci-test-key \
                     mcp/seq-otlp:latest >/dev/null
+
+                  # Let Node finish startup and register its signal handlers.
+                  sleep 1
                   docker stop --time 5 "$signal_name" >/dev/null
 
                   exit_code="$(docker inspect --format '{{.State.ExitCode}}' "$signal_name")"

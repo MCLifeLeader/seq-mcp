@@ -40,6 +40,7 @@ EOF
 }
 
 generate_catalog_manifest() {
+  local image_reference="$1"
   local powershell_command=()
   local powershell_path=""
   local powershell_is_windows=false
@@ -75,7 +76,7 @@ generate_catalog_manifest() {
   fi
 
   "${powershell_command[@]}" -File "$manifest_arg" \
-    -ImageReference "mcp/seq-otlp:latest" \
+    -ImageReference "$image_reference" \
     -Root "$root_arg"
 }
 
@@ -184,9 +185,11 @@ fi
 if [[ -n "$TAG" ]]; then
   LOCAL_IMAGE="${IMAGE_NAME}:${TAG}"
   IMAGE_VERSION="$TAG"
+  CATALOG_IMAGE="$FULL_IMAGE"
 else
   LOCAL_IMAGE="${IMAGE_NAME}"
   IMAGE_VERSION="none"
+  CATALOG_IMAGE="${FULL_IMAGE}:latest"
 fi
 
 if command -v git >/dev/null 2>&1; then
@@ -197,7 +200,7 @@ fi
 
 BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-generate_catalog_manifest
+generate_catalog_manifest "$CATALOG_IMAGE"
 
 if [[ -n "$LOCAL_IMAGE" ]]; then
   stop_running_containers_for_image "$LOCAL_IMAGE"

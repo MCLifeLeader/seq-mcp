@@ -7,6 +7,7 @@ on:
             - main
         paths:
             - "Dockerfile"
+            - "compose.mcp.yaml"
             - ".dockerignore"
             - "assets/**"
             - "build-docker-image.sh"
@@ -24,6 +25,7 @@ on:
     pull_request:
         paths:
             - "Dockerfile"
+            - "compose.mcp.yaml"
             - ".dockerignore"
             - "assets/**"
             - "build-docker-image.sh"
@@ -107,3 +109,57 @@ jobs:
                   fi
 
                   echo "✓ Startup with required env validated"
+
+            - name: Validate stdio container lifecycle
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  eof_name="seq-mcp-eof-check"
+                  signal_name="seq-mcp-signal-check"
+
+                  cleanup() {
+                    docker rm -f "$eof_name" "$signal_name" >/dev/null 2>&1 || true
+                  }
+                  trap cleanup EXIT
+
+                  set +e
+                  timeout --signal=TERM --kill-after=5s 10s \
+                    docker run --name "$eof_name" --rm -i \
+                    -e SEQ_URL=http://example.com \
+                    -e SEQ_API_KEY=ci-test-key \
+                    mcp/seq-otlp:latest </dev/null
+                  eof_exit_code=$?
+                  set -e
+
+                  if [ "$eof_exit_code" -eq 124 ]; then
+                    echo "Container did not exit within 10 seconds after stdin EOF"
+                    exit 1
+                  fi
+
+                  if [ "$eof_exit_code" -ne 0 ]; then
+                    echo "Expected clean stdin EOF exit code 0; got ${eof_exit_code}"
+                    exit 1
+                  fi
+
+                  if docker ps -aq --filter "name=^/${eof_name}$" | grep -q .; then
+                    echo "Container remained after stdin EOF despite --rm"
+                    exit 1
+                  fi
+
+                  docker run -d -i --name "$signal_name" \
+                    -e SEQ_URL=http://example.com \
+                    -e SEQ_API_KEY=ci-test-key \
+                    mcp/seq-otlp:latest >/dev/null
+
+                  # Let Node finish startup and register its signal handlers.
+                  sleep 1
+                  docker stop --time 5 "$signal_name" >/dev/null
+
+                  exit_code="$(docker inspect --format '{{.State.ExitCode}}' "$signal_name")"
+                  if [ "$exit_code" -ne 0 ]; then
+                    echo "Expected graceful SIGTERM exit code 0; got ${exit_code}"
+                    exit 1
+                  fi
+
+                  echo "✓ EOF cleanup and graceful SIGTERM validated"

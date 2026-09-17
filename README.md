@@ -302,6 +302,38 @@ Optional stability controls:
 
 If either is missing, the container exits immediately with a clear startup error.
 
+### Container lifecycle
+
+This is a stdio MCP server, so the MCP client owns its lifetime. The server exits
+when its stdin reaches EOF and handles `SIGTERM`/`SIGINT` as graceful shutdown
+requests. The launcher must also use `--rm` so Docker removes the container after
+the server process exits:
+
+```bash
+docker run --rm -i \
+  -e SEQ_URL=https://seq.example.com \
+  -e SEQ_API_KEY=your-key \
+  mcp/seq-otlp:latest
+```
+
+For Compose, use `docker compose run --rm -i seq-otlp-mcp` or one of the
+provided `run-mcp-compose` scripts. Do not use `docker compose up -d` for this
+stdio server: detached mode has no MCP client attached to close stdin.
+
+There is no image or MCP catalog setting that can force Docker to remove a
+container. Removal is intentionally controlled by the Docker/MCP host. The
+container does not mount the Docker socket and cannot safely delete itself.
+
+If an instance lingers:
+
+- `running` with `OpenStdin=true`: the launcher still owns an open stdin stream;
+  it must close stdin or stop the container when the MCP session ends.
+- `exited`: the launcher omitted `--rm` and must remove the stopped container.
+
+The Docker MCP Gateway normally supplies `--rm -i --init` for catalog-based
+stdio servers. A lingering per-server container under that launcher indicates a
+gateway/session cleanup issue rather than an image metadata option.
+
 Live contract check:
 
 ```bash

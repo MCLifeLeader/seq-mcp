@@ -94,6 +94,13 @@ else {
     $Tag
 }
 
+$catalogImage = if ([string]::IsNullOrWhiteSpace($Tag)) {
+    "${fullImage}:latest"
+}
+else {
+    $fullImage
+}
+
 $gitRef = "unknown"
 if (Get-Command git -ErrorAction SilentlyContinue) {
     try {
@@ -107,7 +114,7 @@ $buildDate = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
 $pushEnabled = $Push.IsPresent -or $env:PUSH -eq "true"
 
 try {
-    & $manifestScript -ImageReference "mcp/seq-otlp:latest" -Root $repoRoot
+    & $manifestScript -ImageReference $catalogImage -Root $repoRoot
 }
 catch {
     throw "Catalog manifest generation failed. $($_.Exception.Message)"

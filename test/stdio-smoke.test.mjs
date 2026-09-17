@@ -2,9 +2,141 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import process from "node:process";
-import { once } from "node:events";
+import { EventEmitter, once } from "node:events";
+import { spawn } from "node:child_process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
+
+function waitForEvent(emitter, event, timeoutMessage, timeoutMs = 5_000) {
+    return new Promise((resolve, reject) => {
+        const cleanup = () => {
+            clearTimeout(timeout);
+            emitter.off(event, onEvent);
+            emitter.off("error", onError);
+        };
+        const onEvent = (...args) => {
+            cleanup();
+            resolve(args);
+        };
+        const onError = (error) => {
+            cleanup();
+            reject(error);
+        };
+        const timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error(timeoutMessage));
+        }, timeoutMs);
+
+        emitter.once(event, onEvent);
+        emitter.once("error", onError);
+    });
+}
+
+function waitForChildExit(child, timeoutMs = 5_000) {
+    return waitForEvent(
+        child,
+        "close",
+        `Child process did not exit within ${timeoutMs}ms.`,
+        timeoutMs,
+    );
+}
+
+function waitForChildInitialization(child, timeoutMs = 5_000) {
+    if (!child.stdout) {
+        throw new Error("Child process stdout is not available.");
+    }
+
+    return waitForEvent(
+        child.stdout,
+        "data",
+        `Child process did not initialize within ${timeoutMs}ms.`,
+        timeoutMs,
+    );
+}
+
+function spawnMcpServer() {
+    return spawn(process.execPath, ["dist/index.js"], {
+        cwd: process.cwd(),
+        env: {
+            ...process.env,
+            SEQ_URL: "http://127.0.0.1:65535",
+            SEQ_API_KEY: "test-api-key",
+        },
+        stdio: ["pipe", "pipe", "pipe"],
+    });
+}
+
+test("bounded event waits reject and remove listeners on timeout", async () => {
+    const emitter = new EventEmitter();
+
+    await assert.rejects(
+        waitForEvent(emitter, "ready", "Timed out waiting for readiness.", 10),
+        /Timed out waiting for readiness/,
+    );
+    assert.equal(emitter.listenerCount("ready"), 0);
+    assert.equal(emitter.listenerCount("error"), 0);
+});
+
+test("stdio MCP server exits cleanly when its client closes stdin", async () => {
+    const child = spawnMcpServer();
+
+    try {
+        await once(child, "spawn");
+        child.stdin.end();
+
+        const [code, signal] = await waitForChildExit(child);
+        assert.equal(code, 0);
+        assert.equal(signal, null);
+    } finally {
+        if (child.exitCode === null && child.signalCode === null) {
+            child.kill("SIGKILL");
+        }
+    }
+});
+
+test(
+    "stdio MCP server exits cleanly on SIGTERM",
+    {
+        skip:
+            process.platform === "win32"
+                ? "Windows terminates child processes directly for SIGTERM."
+                : false,
+    },
+    async () => {
+        const child = spawnMcpServer();
+
+        try {
+            await once(child, "spawn");
+            const initialized = waitForChildInitialization(child);
+            child.stdin.write(
+                `${JSON.stringify({
+                    jsonrpc: "2.0",
+                    id: 1,
+                    method: "initialize",
+                    params: {
+                        protocolVersion: LATEST_PROTOCOL_VERSION,
+                        capabilities: {},
+                        clientInfo: {
+                            name: "shutdown-test",
+                            version: "0.0.0",
+                        },
+                    },
+                })}\n`,
+            );
+            await initialized;
+            child.kill("SIGTERM");
+
+            const [code, signal] = await waitForChildExit(child);
+            assert.equal(code, 0);
+            assert.equal(signal, null);
+        } finally {
+            if (child.exitCode === null && child.signalCode === null) {
+                child.kill("SIGKILL");
+            }
+        }
+    },
+);
 
 async function startFakeSeqServer() {
     const requests = [];

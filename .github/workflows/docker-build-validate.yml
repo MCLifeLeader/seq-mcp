@@ -51,16 +51,25 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7.0.1
 
             - name: Setup Node
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v7.1.0
               with:
                   node-version-file: ".nvmrc"
                   cache: "npm"
 
+            - name: Setup npm
+              run: npm install --global npm@12.2.0
+
             - name: Install dependencies
               run: npm ci
+
+            - name: Audit dependencies
+              run: npm audit --audit-level=moderate
+
+            - name: Test
+              run: npm test
 
             - name: Type check
               run: npm run check

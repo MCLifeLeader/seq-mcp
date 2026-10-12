@@ -151,12 +151,19 @@ Health check behavior:
 
 ## Local Run (Node)
 
-Node.js requirement: v24.15.0 LTS with npm 11.13.0 (see `.nvmrc` and `package.json`).
+Use Node.js v24.21.0 LTS and npm 12.2.0 (see `.nvmrc` and `package.json`).
+Install the pinned npm version after selecting Node.js:
 
 ```bash
-npm install
+npm install --global npm@12.2.0
+npm ci
 npm run build
+npm test
+npm audit
 ```
+
+The Docker build and CI use the same npm version. Both Docker stages pin the
+Node.js 24.21.0 / Alpine 3.24 image by digest for reproducible builds.
 
 Windows PowerShell:
 

@@ -4,6 +4,7 @@ import process from "node:process";
 import { z } from "zod";
 import { loadConfig, type ServerConfig } from "./config.js";
 import { formatJson } from "./format.js";
+import { IdleLifetime, loadIdleTimeoutMs } from "./idle-lifetime.js";
 import {
     SeqClient,
     SeqHttpError,
@@ -27,6 +28,24 @@ const server = new McpServer({
 });
 
 let shutdownPromise: Promise<void> | undefined;
+let idleLifetime: IdleLifetime | undefined;
+
+server.tool(
+    "seq_server_ttl",
+    "Report idleTimeoutMs and remainingMs until automatic shutdown. This query does not reset the idle timer.",
+    {},
+    async () => okResult(idleLifetime!.status()),
+);
+
+server.tool(
+    "seq_server_keep_alive",
+    "Reset the server idle timer to the configured timeout and report idleTimeoutMs and remainingMs. Does not contact Seq.",
+    {},
+    async () => {
+        idleLifetime!.reset();
+        return okResult(idleLifetime!.status());
+    },
+);
 
 const MAX_QUERY_ENTRIES = 25;
 const MAX_PATH_PARAM_ENTRIES = 10;
@@ -1169,13 +1188,40 @@ for (const entry of SEQ_ROUTE_CATALOG) {
 async function start(): Promise<void> {
     getConfig();
     getSeqClient();
+    idleLifetime = new IdleLifetime(loadIdleTimeoutMs(), () => {
+        process.stderr.write(
+            "mcp-seq-otlp idle timeout reached; shutting down.\n",
+        );
+        // Exit after transport cleanup even if an outstanding Seq request holds a socket.
+        void shutdown()
+            .then(() => process.exit(0))
+            .catch((error: unknown) => {
+                writeFatalError("mcp-seq-otlp shutdown error", error, () =>
+                    process.exit(1),
+                );
+            });
+    });
     const transport = new StdioServerTransport();
+    // The SDK preserves this callback when it installs its protocol handler.
+    transport.onmessage = (message) => {
+        if (
+            "id" in message &&
+            "method" in message &&
+            !(
+                message.method === "tools/call" &&
+                message.params?.name === "seq_server_ttl"
+            )
+        ) {
+            idleLifetime?.reset();
+        }
+    };
     await server.connect(transport);
 }
 
 async function shutdown(exitCode = 0): Promise<void> {
     if (!shutdownPromise) {
         shutdownPromise = (async () => {
+            idleLifetime?.stop();
             await server.close();
             process.stdin.pause();
             process.stdin.destroy();

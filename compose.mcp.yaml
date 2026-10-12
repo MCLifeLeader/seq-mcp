@@ -8,5 +8,6 @@ services:
                 IMAGE_VERSION: ${MCP_IMAGE_TAG:-dev}
         tty: false
         environment:
+            MCP_IDLE_TIMEOUT_MS: ${MCP_IDLE_TIMEOUT_MS:-900000}
             SEQ_URL: ${SEQ_URL:?SEQ_URL is required}
             SEQ_API_KEY: ${SEQ_API_KEY:?SEQ_API_KEY is required}

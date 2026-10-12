@@ -296,6 +296,7 @@ The container startup contract requires both variables to be present:
 
 Optional stability controls:
 
+- `MCP_IDLE_TIMEOUT_MS`: idle lifetime in milliseconds, default `900000` (15 minutes), bounded to `1-2147483647`.
 - `SEQ_TIMEOUT_MS`: request timeout in milliseconds, default `30000`, bounded to `1000-120000`.
 - `SEQ_MAX_REQUEST_BYTES`: max outbound request body size, default `262144`.
 - `SEQ_MAX_RESPONSE_BYTES`: max inbound response size, default `1048576`.
@@ -304,9 +305,19 @@ If either is missing, the container exits immediately with a clear startup error
 
 ### Container lifecycle
 
-This is a stdio MCP server, so the MCP client owns its lifetime. The server exits
-when its stdin reaches EOF and handles `SIGTERM`/`SIGINT` as graceful shutdown
-requests. The launcher must also use `--rm` so Docker removes the container after
+The server automatically stops after 15 minutes without an MCP request. Set
+`MCP_IDLE_TIMEOUT_MS` to configure this interval. The timer starts at server
+startup. Every MCP request resets it, including discovery, ping, and failed tool
+calls, except `seq_server_ttl`. Protocol notifications and outgoing responses do
+not reset it. Expiry closes the transport and exits successfully, even if stdin
+is still open or a Seq request is outstanding; outstanding calls may be interrupted.
+
+- `seq_server_ttl` returns `{ idleTimeoutMs, remainingMs }` without resetting the timer.
+- `seq_server_keep_alive` resets the timer and returns the same fields, without contacting Seq.
+
+This is a stdio MCP server; these endpoints are MCP tools. The server also exits
+when stdin reaches EOF and handles `SIGTERM`/`SIGINT` as graceful shutdown
+requests. The launcher must use `--rm` so Docker or Podman removes the container after
 the server process exits:
 
 ```bash
@@ -315,6 +326,11 @@ docker run --rm -i \
   -e SEQ_API_KEY=your-key \
   mcp/seq-otlp:latest
 ```
+
+Use the same flags with `podman run`. Expiry stops the container and removes it
+from the active container list. `--rm` also removes the stopped container record;
+the image remains available for new containers. Avoid restart policies such as
+`always` or `unless-stopped`, which would relaunch an expired container.
 
 For Compose, use `docker compose run --rm -i seq-otlp-mcp` or one of the
 provided `run-mcp-compose` scripts. Do not use `docker compose up -d` for this

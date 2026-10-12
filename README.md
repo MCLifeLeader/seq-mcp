@@ -43,6 +43,8 @@ Required configuration:
 - `seq_api_catalog`: returns the full official Seq route/verb/permission catalog.
 - `seq_api_live_links`: discovers live `name -> route` links from your Seq instance.
 - `seq_api_request`: generic verb/path invoker for official cataloged Seq API routes.
+- `seq_server_ttl`: report remaining idle lifetime without resetting the timer.
+- `seq_server_keep_alive`: reset the idle timer without contacting Seq.
 - `seq_<verb>_<route>`: auto-generated tool per official route+verb (from docs).
 
 Scope note:
@@ -349,8 +351,9 @@ container does not mount the Docker socket and cannot safely delete itself.
 
 If an instance lingers:
 
-- `running` with `OpenStdin=true`: the launcher still owns an open stdin stream;
-  it must close stdin or stop the container when the MCP session ends.
+- `running` with `OpenStdin=true`: the launcher still owns an open stdin stream.
+  The server exits when the idle timer expires; MCP requests such as periodic
+  pings reset that timer. Close stdin or stop the container for immediate shutdown.
 - `exited`: the launcher omitted `--rm` and must remove the stopped container.
 
 The Docker MCP Gateway normally supplies `--rm -i --init` for catalog-based

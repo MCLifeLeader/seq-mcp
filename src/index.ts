@@ -561,6 +561,8 @@ const AGENT_GUIDE = Object.freeze({
         "Use seq_api_request only with cataloged routes and explicit method/path/pathParams/query/body values.",
     ],
     toolSelection: {
+        serverLifetime:
+            "seq_server_ttl reports remaining idle lifetime without extending it; seq_server_keep_alive resets it without contacting Seq. The default idle timeout is 15 minutes.",
         troubleshooting:
             "seq_connection_test, then seq_starter_overview, then seq_starter_events_search.",
         eventSearch:

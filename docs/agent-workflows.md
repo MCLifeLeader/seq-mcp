@@ -15,6 +15,13 @@ Agents should use this order unless the user asks for a specific route:
 
 ## Common Tasks
 
+The server shuts down after 15 minutes without an MCP request by default
+(`MCP_IDLE_TIMEOUT_MS` configures this). Use `seq_server_ttl` to read
+`idleTimeoutMs` and `remainingMs` without extending the lifetime. Use
+`seq_server_keep_alive` to reset the timer without querying Seq. Other MCP
+requests, including ping and discovery, reset it. Once it expires, start a new
+server/container to reconnect. Launch containers with `--rm` for automatic removal.
+
 | Task                          | Preferred tool                                           | Notes                                                                  |
 | ----------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------- |
 | Verify configuration          | `seq_connection_test`                                    | Reports resolved API and health URLs.                                  |

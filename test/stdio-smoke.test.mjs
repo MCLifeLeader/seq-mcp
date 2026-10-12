@@ -62,6 +62,7 @@ function spawnMcpServer() {
             ...process.env,
             SEQ_URL: "http://127.0.0.1:65535",
             SEQ_API_KEY: "test-api-key",
+            MCP_IDLE_TIMEOUT_MS: "900000",
         },
         stdio: ["pipe", "pipe", "pipe"],
     });
@@ -349,6 +350,7 @@ async function startFakeSeqServer() {
 async function withClient(env, run) {
     const mergedEnv = {
         ...process.env,
+        MCP_IDLE_TIMEOUT_MS: "900000",
         ...env,
     };
 

@@ -1,5 +1,15 @@
 [
   {
+    "name": "seq_server_ttl",
+    "description": "Report idleTimeoutMs and remainingMs until automatic shutdown. This query does not reset the idle timer.",
+    "inputSchema": { "type": "object", "properties": {} }
+  },
+  {
+    "name": "seq_server_keep_alive",
+    "description": "Reset the server idle timer to the configured timeout and report idleTimeoutMs and remainingMs. Does not contact Seq.",
+    "inputSchema": { "type": "object", "properties": {} }
+  },
+  {
     "name": "seq_agent_guide",
     "description": "Return concise guidance that tells AI agents how to choose Seq MCP tools, recommended workflows, example calls, and safety limits.",
     "inputSchema": {

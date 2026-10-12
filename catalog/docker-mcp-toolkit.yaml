@@ -11,16 +11,29 @@ secrets:
 env:
     - name: SEQ_URL
       value: "{{seq-otlp.url}}"
+    - name: MCP_IDLE_TIMEOUT_MS
+      value: "{{seq-otlp.idle_timeout_ms}}"
 config:
     - description: Configure the connection to Seq.
       name: seq-otlp
       properties:
           url:
               type: string
+          idle_timeout_ms:
+              type: integer
+              default: 900000
+              minimum: 1
+              maximum: 2147483647
       required:
           - url
       type: object
 tools:
+    - name: seq_server_ttl
+      description: Report idleTimeoutMs and remainingMs until automatic shutdown. This query does not reset the idle timer.
+      arguments: []
+    - name: seq_server_keep_alive
+      description: Reset the server idle timer to the configured timeout and report idleTimeoutMs and remainingMs. Does not contact Seq.
+      arguments: []
     - name: seq_agent_guide
       description: Return concise guidance that tells AI agents how to choose Seq MCP tools, recommended workflows, example calls, and safety limits.
       arguments: []

@@ -26,6 +26,12 @@ config:
         configSchema:
             type: object
             properties:
+                idle_timeout_ms:
+                    type: integer
+                    description: Idle lifetime in milliseconds; TTL queries do not reset it.
+                    default: 900000
+                    minimum: 1
+                    maximum: 2147483647
                 seq_url:
                     type: string
                     description: Seq base URL (recommended) or API URL (for example https://seq.example.com).
@@ -33,6 +39,9 @@ config:
                 - seq_url
     description: Configure connection settings for the target Seq instance. Agents should begin with seq_agent_guide, seq_connection_test, and seq_starter_overview before using advanced API routes.
     env:
+        - name: MCP_IDLE_TIMEOUT_MS
+          description: Automatic shutdown interval in milliseconds.
+          value: "{{seq-otlp.idle_timeout_ms}}"
         - name: SEQ_URL
           description: URL for the target Seq server root (recommended) or /api endpoint.
           example: https://seq.example.com

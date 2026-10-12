@@ -43,6 +43,8 @@ Required configuration:
 - `seq_api_catalog`: returns the full official Seq route/verb/permission catalog.
 - `seq_api_live_links`: discovers live `name -> route` links from your Seq instance.
 - `seq_api_request`: generic verb/path invoker for official cataloged Seq API routes.
+- `seq_server_ttl`: report remaining idle lifetime without resetting the timer.
+- `seq_server_keep_alive`: reset the idle timer without contacting Seq.
 - `seq_<verb>_<route>`: auto-generated tool per official route+verb (from docs).
 
 Scope note:
@@ -151,12 +153,19 @@ Health check behavior:
 
 ## Local Run (Node)
 
-Node.js requirement: v24.15.0 LTS with npm 11.13.0 (see `.nvmrc` and `package.json`).
+Use Node.js v24.21.0 LTS and npm 12.2.0 (see `.nvmrc` and `package.json`).
+Install the pinned npm version after selecting Node.js:
 
 ```bash
-npm install
+npm install --global npm@12.2.0
+npm ci
 npm run build
+npm test
+npm audit
 ```
+
+The Docker build and CI use the same npm version. Both Docker stages pin the
+Node.js 24.21.0 / Alpine 3.24 image by digest for reproducible builds.
 
 Windows PowerShell:
 
@@ -296,6 +305,7 @@ The container startup contract requires both variables to be present:
 
 Optional stability controls:
 
+- `MCP_IDLE_TIMEOUT_MS`: idle lifetime in milliseconds, default `900000` (15 minutes), bounded to `1-2147483647`.
 - `SEQ_TIMEOUT_MS`: request timeout in milliseconds, default `30000`, bounded to `1000-120000`.
 - `SEQ_MAX_REQUEST_BYTES`: max outbound request body size, default `262144`.
 - `SEQ_MAX_RESPONSE_BYTES`: max inbound response size, default `1048576`.
@@ -304,9 +314,19 @@ If either is missing, the container exits immediately with a clear startup error
 
 ### Container lifecycle
 
-This is a stdio MCP server, so the MCP client owns its lifetime. The server exits
-when its stdin reaches EOF and handles `SIGTERM`/`SIGINT` as graceful shutdown
-requests. The launcher must also use `--rm` so Docker removes the container after
+The server automatically stops after 15 minutes without an MCP request. Set
+`MCP_IDLE_TIMEOUT_MS` to configure this interval. The timer starts at server
+startup. Every MCP request resets it, including discovery, ping, and failed tool
+calls, except `seq_server_ttl`. Protocol notifications and outgoing responses do
+not reset it. Expiry closes the transport and exits successfully, even if stdin
+is still open or a Seq request is outstanding; outstanding calls may be interrupted.
+
+- `seq_server_ttl` returns `{ idleTimeoutMs, remainingMs }` without resetting the timer.
+- `seq_server_keep_alive` resets the timer and returns the same fields, without contacting Seq.
+
+This is a stdio MCP server; these endpoints are MCP tools. The server also exits
+when stdin reaches EOF and handles `SIGTERM`/`SIGINT` as graceful shutdown
+requests. The launcher must use `--rm` so Docker or Podman removes the container after
 the server process exits:
 
 ```bash
@@ -315,6 +335,11 @@ docker run --rm -i \
   -e SEQ_API_KEY=your-key \
   mcp/seq-otlp:latest
 ```
+
+Use the same flags with `podman run`. Expiry stops the container and removes it
+from the active container list. `--rm` also removes the stopped container record;
+the image remains available for new containers. Avoid restart policies such as
+`always` or `unless-stopped`, which would relaunch an expired container.
 
 For Compose, use `docker compose run --rm -i seq-otlp-mcp` or one of the
 provided `run-mcp-compose` scripts. Do not use `docker compose up -d` for this
@@ -326,8 +351,9 @@ container does not mount the Docker socket and cannot safely delete itself.
 
 If an instance lingers:
 
-- `running` with `OpenStdin=true`: the launcher still owns an open stdin stream;
-  it must close stdin or stop the container when the MCP session ends.
+- `running` with `OpenStdin=true`: the launcher still owns an open stdin stream.
+  The server exits when the idle timer expires; MCP requests such as periodic
+  pings reset that timer. Close stdin or stop the container for immediate shutdown.
 - `exited`: the launcher omitted `--rm` and must remove the stopped container.
 
 The Docker MCP Gateway normally supplies `--rm -i --init` for catalog-based

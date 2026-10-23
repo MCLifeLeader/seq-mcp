@@ -89,3 +89,22 @@ Advanced route call:
 - Use least-privilege Seq API keys.
 - Do not guess advanced paths; call `seq_api_catalog` first.
 - Treat `Project`, `Organization`, and `System` routes as elevated operations.
+
+## Data query bounds and incomplete results
+
+The data-query starter maps `fromDateUtc`/`toDateUtc` to Seq's
+`rangeStartUtc`/`rangeEndUtc`, and `signalId` to `signal`, for GET and POST.
+Supply valid ISO 8601 UTC timestamps ending in `Z` with at most three
+fractional second digits (millisecond precision); the end is exclusive. Omitted
+time bounds remain unbounded, so always supply them for readiness evidence.
+`count` caps result rows locally, not server query work; use SQL `limit` and
+a narrow time window to bound server work. A capped result includes
+`RowLimit.complete: false` and received/returned counts.
+
+Responses exceeding the 16,000-character display limit return valid JSON
+with `isError: true`, `complete: false`, `dataOmitted: true`, and size metadata.
+No partial event data is returned. Narrow the query or use supported paging
+and retry; never use an omitted or capped response as complete evidence.
+
+Contract source: [official Seq API DataResourceGroup](https://github.com/datalust/seq-api/blob/dev/src/Seq.Api/ResourceGroups/DataResourceGroup.cs),
+confirmed against the connected server's `api/data/resources` Query link.

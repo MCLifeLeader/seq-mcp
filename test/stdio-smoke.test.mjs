@@ -276,7 +276,7 @@ async function startFakeSeqServer() {
             return;
         }
 
-        if (url.pathname === "/api/data" && request.method === "POST") {
+        if (url.pathname === "/api/data") {
             response.writeHead(200, { "Content-Type": "application/json" });
             response.end(
                 JSON.stringify({
@@ -307,7 +307,7 @@ async function startFakeSeqServer() {
             response.end(
                 JSON.stringify({
                     Id: "large-event",
-                    Payload: "x".repeat(512),
+                    Payload: "x".repeat(20_000),
                 }),
             );
             return;
@@ -971,6 +971,9 @@ test("seq_starter_data_query sends q as a query parameter for POST", async () =>
                     arguments: {
                         q: "select count(*) as Count from stream",
                         count: 10,
+                        fromDateUtc: "2026-10-23T03:00:00Z",
+                        toDateUtc: "2026-10-23T04:00:00Z",
+                        signalId: "signal-42",
                         usePost: true,
                     },
                 });
@@ -979,7 +982,9 @@ test("seq_starter_data_query sends q as a query parameter for POST", async () =>
                 const payload = JSON.parse(result.content[0].text);
                 assert.deepEqual(payload.query, {
                     q: "select count(*) as Count from stream",
-                    count: "10",
+                    rangeStartUtc: "2026-10-23T03:00:00Z",
+                    rangeEndUtc: "2026-10-23T04:00:00Z",
+                    signal: "signal-42",
                 });
                 assert.deepEqual(payload.body, {});
                 assert.equal(fakeSeq.requests.at(-1)?.method, "POST");
@@ -1180,5 +1185,68 @@ test("SeqClient enforces response size while streaming without content-length", 
     } finally {
         server.close();
         await once(server, "close");
+    }
+});
+
+test("data query GET uses server time bounds and rejects reversed bounds before a request", async () => {
+    const fakeSeq = await startFakeSeqServer();
+    try {
+        await withClient(
+            { SEQ_URL: fakeSeq.baseUrl, SEQ_API_KEY: "test-api-key" },
+            async (client) => {
+                const result = await client.callTool({
+                    name: "seq_starter_data_query",
+                    arguments: {
+                        q: "select count(*) from stream",
+                        fromDateUtc: "2026-10-23T03:00:00Z",
+                        toDateUtc: "2026-10-23T04:00:00Z",
+                        signalId: "signal-42",
+                    },
+                });
+                assert.equal(result.isError, undefined);
+                assert.deepEqual(JSON.parse(result.content[0].text).query, {
+                    q: "select count(*) from stream",
+                    rangeStartUtc: "2026-10-23T03:00:00Z",
+                    rangeEndUtc: "2026-10-23T04:00:00Z",
+                    signal: "signal-42",
+                });
+                const before = fakeSeq.requests.length;
+                const invalid = await client.callTool({
+                    name: "seq_starter_data_query",
+                    arguments: {
+                        q: "select count(*) from stream",
+                        fromDateUtc: "2026-10-23T04:00:00Z",
+                        toDateUtc: "2026-10-23T03:00:00Z",
+                    },
+                });
+                assert.equal(invalid.isError, true);
+                assert.equal(fakeSeq.requests.length, before);
+            },
+        );
+    } finally {
+        await fakeSeq.close();
+    }
+});
+
+test("oversized tool output is an explicit error with valid JSON and no partial event", async () => {
+    const fakeSeq = await startFakeSeqServer();
+    try {
+        await withClient(
+            { SEQ_URL: fakeSeq.baseUrl, SEQ_API_KEY: "test-api-key" },
+            async (client) => {
+                const result = await client.callTool({
+                    name: "seq_starter_event_by_id",
+                    arguments: { id: "large-event" },
+                });
+                assert.equal(result.isError, true);
+                const payload = JSON.parse(result.content[0].text);
+                assert.equal(payload.complete, false);
+                assert.equal(payload.dataOmitted, true);
+                assert.equal(payload.originalChars > payload.maxChars, true);
+                assert.equal(payload.Payload, undefined);
+            },
+        );
+    } finally {
+        await fakeSeq.close();
     }
 });

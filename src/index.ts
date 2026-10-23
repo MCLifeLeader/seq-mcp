@@ -3,7 +3,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import process from "node:process";
 import { z } from "zod";
 import { loadConfig, type ServerConfig } from "./config.js";
-import { formatJson } from "./format.js";
+import { formatJson, formatJsonOutput } from "./format.js";
+import { limitQueryRows, validateQueryRange } from "./data-query.js";
 import { IdleLifetime, loadIdleTimeoutMs } from "./idle-lifetime.js";
 import {
     SeqClient,
@@ -107,11 +108,13 @@ function getSeqClient(): SeqClient {
 }
 
 function okResult(value: unknown): ToolResult {
+    const output = formatJsonOutput(value);
     return {
+        ...(output.truncated ? { isError: true } : {}),
         content: [
             {
                 type: "text",
-                text: formatJson(value),
+                text: output.text,
             },
         ],
     };
@@ -767,13 +770,13 @@ server.tool(
 
 server.tool(
     "seq_starter_data_query",
-    "Run a bounded Seq data query using the q language for aggregation, projection, and analysis.",
+    "Run a Seq data query with optional server-side UTC bounds and an explicit client-side row limit.",
     {
         q: z
             .string()
             .min(1)
             .describe(
-                "Seq q query, for example select count(*) as Count from stream. Keep it scoped with time range/count when possible.",
+                "Seq q query, for example select count(*) as Count from stream. Supply UTC bounds and SQL limit/paging to bound server work; count only caps returned rows locally.",
             ),
         signalId: z
             .string()
@@ -799,7 +802,7 @@ server.tool(
             .optional()
             .default(100)
             .describe(
-                "Maximum rows/events to return, from 1 to 500. Default 100.",
+                "Client-side row cap, from 1 to 500 (default 100); does not limit server work. Omitted rows are reported explicitly.",
             ),
         usePost: z
             .boolean()
@@ -813,17 +816,19 @@ server.tool(
 
         return withGracefulErrors(
             "seq_starter_data_query",
-            async () =>
-                callCatalogRoute(method, "api/data", {
+            async () => {
+                validateQueryRange(fromDateUtc, toDateUtc);
+                const value = await callCatalogRoute(method, "api/data", {
                     query: {
                         q,
-                        signalId,
-                        fromDateUtc,
-                        toDateUtc,
-                        count: String(count),
+                        signal: signalId,
+                        rangeStartUtc: fromDateUtc,
+                        rangeEndUtc: toDateUtc,
                     },
                     body: usePost ? {} : undefined,
-                }),
+                });
+                return limitQueryRows(value, count);
+            },
             route?.permission,
         );
     },
